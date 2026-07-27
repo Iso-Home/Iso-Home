@@ -1,0 +1,5 @@
+.DS_Store
+.thumbnail
+uploads/
+node_modules/
+dist/

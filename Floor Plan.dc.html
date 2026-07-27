@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=1820">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #e6e3da; font-family: Archivo, Helvetica, Arial, sans-serif; }
+  a { color: #a8442a; text-decoration: none; }
+  a:hover { color: #8a3520; text-decoration: underline; }
+</style>
+</helmet>
+
+<div data-screen-label="Floor Plan" style="position: relative; width: 1820px; height: 1700px; background: #f6f4ef; overflow: hidden; box-shadow: 0 24px 70px rgba(30,26,16,0.16);">
+
+  <div style="position: absolute; left: 56px; top: 46px; display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-size: 36px; font-weight: 600; letter-spacing: -0.005em; color: #17150f; line-height: 1;">One-Bedroom Apartment</div>
+    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #7d776a;">2D Floor Plan &nbsp;·&nbsp; Level 1 &nbsp;·&nbsp; Redrawn from 3D reference</div>
+  </div>
+  <div style="position: absolute; right: 56px; top: 50px; display: flex; gap: 40px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #7d776a;">
+    <div style="display: flex; flex-direction: column; gap: 7px;"><span>Interior</span><span style="font-size: 17px; letter-spacing: 0.04em; color: #17150f;">650 sq ft</span></div>
+    <div style="display: flex; flex-direction: column; gap: 7px;"><span>Balcony</span><span style="font-size: 17px; letter-spacing: 0.04em; color: #17150f;">66 sq ft</span></div>
+    <div style="display: flex; flex-direction: column; gap: 7px;"><span>Storage</span><span style="font-size: 17px; letter-spacing: 0.04em; color: #17150f;">7 sq ft</span></div>
+    <div style="display: flex; flex-direction: column; gap: 7px;"><span>Sheet</span><span style="font-size: 17px; letter-spacing: 0.04em; color: #17150f;">A-101</span></div>
+  </div>
+  <div style="position: absolute; left: 56px; right: 56px; top: 138px; height: 1px; background: #d8d3c4;"></div>
+  <div style="position: absolute; left: 56px; top: 136px; width: 140px; height: 3px; background: #a8442a; background: {{ accent }};"></div>
+
+  <!-- ══ plan ══ (origin = interior NW corner, 40px = 1'-0") -->
+  <div style="position: absolute; left: 220px; top: 510px; width: 1120px; height: 940px;">
+
+    <!-- wall poché -->
+    <div data-wall="bumpout" style="position: absolute; left: 537px; top: -272px; width: 609px; height: 272px; background: #17150f;"></div>
+    <div data-wall="north" style="position: absolute; left: -26px; top: -26px; width: 1172px; height: 26px; background: #17150f;"></div>
+    <div data-wall="south" style="position: absolute; left: -26px; top: 940px; width: 1172px; height: 26px; background: #17150f;"></div>
+    <div data-wall="east" style="position: absolute; left: 1120px; top: 0; width: 26px; height: 940px; background: #17150f;"></div>
+    <div data-wall="west" style="position: absolute; left: -26px; top: 0; width: 26px; height: 940px; background: #17150f;"></div>
+    <div data-wall="interior-partitions" style="position: absolute; left: 0px; top: 0; width: 1120px; height: 940px; background: #17150f;"></div>
+
+    <!-- floor plates -->
+    <div style="position: absolute; left: 534px; top: 0; width: 586px; height: 940px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 214px; top: 494px; width: 320px; height: 446px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 94px; top: 494px; width: 120px; height: 112px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 0px; top: 0; width: 520px; height: 480px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 0px; top: 366px; width: 354px; height: 114px; background: #17150f;"></div>
+    <div style="position: absolute; left: 0px; top: 380px; width: 340px; height: 100px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 0px; top: 494px; width: 80px; height: 112px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 0px; top: 620px; width: 200px; height: 320px; background: #fdfcf9;"></div>
+    <!-- bump-out above A1: storage over coat closet -->
+    <div style="position: absolute; left: 1017px; top: -246px; width: 103px; height: 103px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 1017px; top: -129px; width: 103px; height: 103px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 563px; top: -272px; width: 440px; height: 246px; background: #eeebe1;"></div>
+
+    <!-- balcony railing -->
+    <div style="position: absolute; left: 563px; top: -272px; width: 440px; height: 5px; background: #17150f;"></div>
+    <div style="position: absolute; left: 563px; top: -272px; width: 5px; height: 246px; background: #17150f;"></div>
+    <div style="position: absolute; left: 575px; top: -260px; width: 428px; height: 2px; background: #17150f;"></div>
+    <div style="position: absolute; left: 575px; top: -260px; width: 2px; height: 234px; background: #17150f;"></div>
+
+    <!-- openings -->
+    <div style="position: absolute; left: 1120px; top: 20px; width: 26px; height: 120px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 663px; top: -26px; width: 240px; height: 26px; background: #eeebe1;"></div>
+    <div style="position: absolute; left: 1003px; top: -226px; width: 14px; height: 80px; background: #eeebe1;"></div>
+    <div style="position: absolute; left: 1022px; top: -26px; width: 93px; height: 26px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 360px; top: 480px; width: 120px; height: 14px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 20px; top: 366px; width: 300px; height: 14px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 94px; top: 606px; width: 100px; height: 14px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 80px; top: 510px; width: 14px; height: 80px; background: #fdfcf9;"></div>
+
+    <div style="position: absolute; left: 40px; top: -26px; width: 220px; height: 26px; background: #fdfcf9;"></div>
+    <div style="position: absolute; left: 40px; top: -14px; width: 220px; height: 3px; background: #17150f;"></div>
+
+    <!-- entry door -->
+    <div style="position: absolute; left: 1000px; top: 20px; width: 120px; height: 120px; border-left: 1.5px solid #6f6a5c; border-top: 1.5px solid #6f6a5c; border-top-left-radius: 100%;"></div>
+    <div style="position: absolute; left: 1000px; top: 135px; width: 120px; height: 5px; background: #17150f;"></div>
+    <!-- bedroom door -->
+    <div style="position: absolute; left: 360px; top: 360px; width: 120px; height: 120px; border-left: 1.5px solid #6f6a5c; border-top: 1.5px solid #6f6a5c; border-top-left-radius: 100%;"></div>
+    <div style="position: absolute; left: 475px; top: 360px; width: 5px; height: 120px; background: #17150f;"></div>
+    <!-- bathroom door, north wall beside the W/D -->
+    <div style="position: absolute; left: 94px; top: 620px; width: 100px; height: 100px; border-right: 1.5px solid #6f6a5c; border-bottom: 1.5px solid #6f6a5c; border-bottom-right-radius: 100%;"></div>
+    <div style="position: absolute; left: 94px; top: 620px; width: 5px; height: 100px; background: #17150f;"></div>
+    <!-- balcony slider -->
+    <div style="position: absolute; left: 664px; top: -21px; width: 118px; height: 5px; background: #17150f;"></div>
+    <div style="position: absolute; left: 784px; top: -11px; width: 118px; height: 5px; background: #17150f;"></div>
+    <!-- storage bifold, off the balcony -->
+    <div style="position: absolute; left: 1011px; top: -224px; width: 4px; height: 38px; background: #17150f;"></div>
+    <div style="position: absolute; left: 1005px; top: -186px; width: 4px; height: 38px; background: #17150f;"></div>
+    <!-- coat closet bifold -->
+    <div style="position: absolute; left: 1070px; top: -18px; width: 43px; height: 4px; background: #17150f;"></div>
+    <div style="position: absolute; left: 1024px; top: -18px; width: 43px; height: 4px; background: #17150f;"></div>
+    <!-- bedroom closet sliders -->
+    <div style="position: absolute; left: 165px; top: 368px; width: 154px; height: 4px; background: #17150f;"></div>
+    <div style="position: absolute; left: 21px; top: 374px; width: 154px; height: 4px; background: #17150f;"></div>
+    <!-- w/d bifold -->
+    <div style="position: absolute; left: 88px; top: 512px; width: 4px; height: 38px; background: #17150f;"></div>
+    <div style="position: absolute; left: 82px; top: 550px; width: 4px; height: 38px; background: #17150f;"></div>
+
+    <!-- ══ built-ins ══ -->
+    <div style="position: absolute; left: 214px; top: 606px; width: 306px; height: 14px; background: #17150f;"></div>
+    <div style="position: absolute; left: 520px; top: 596px; width: 100px; height: 0; border-top: 1.5px dashed #8b8577;"></div>
+    <div style="position: absolute; left: 214px; top: 620px; width: 406px; height: 80px; background: #ddd8c9; border: 1.5px solid #9b9585;"></div>
+    <div style="position: absolute; left: 424px; top: 636px; width: 36px; height: 48px; border: 1.5px solid #9b9585; background: #f3f1ea; border-radius: 3px;"></div>
+    <div style="position: absolute; left: 384px; top: 636px; width: 36px; height: 48px; border: 1.5px solid #9b9585; background: #f3f1ea; border-radius: 3px;"></div>
+    <div style="position: absolute; left: 214px; top: 860px; width: 406px; height: 80px; background: #ddd8c9; border: 1.5px solid #9b9585;"></div>
+    <div style="position: absolute; left: 460px; top: 866px; width: 100px; height: 68px; border: 1.5px solid #9b9585; background: #f3f1ea;"></div>
+    <div style="position: absolute; left: 524px; top: 874px; width: 24px; height: 24px; border: 1.5px solid #9b9585; border-radius: 50%;"></div>
+    <div style="position: absolute; left: 476px; top: 874px; width: 24px; height: 24px; border: 1.5px solid #9b9585; border-radius: 50%;"></div>
+    <div style="position: absolute; left: 524px; top: 904px; width: 24px; height: 24px; border: 1.5px solid #9b9585; border-radius: 50%;"></div>
+    <div style="position: absolute; left: 476px; top: 904px; width: 24px; height: 24px; border: 1.5px solid #9b9585; border-radius: 50%;"></div>
+    <div style="position: absolute; left: 214px; top: 840px; width: 100px; height: 100px; border: 1.5px solid #9b9585; background: #f0eee5;"></div>
+    <div style="position: absolute; left: 214px; top: 886px; width: 100px; height: 1.5px; background: #9b9585;"></div>
+    <!-- bathroom: sink, toilet, tub in one run down the length -->
+    <div style="position: absolute; left: 0px; top: 630px; width: 80px; height: 90px; background: #ddd8c9; border: 1.5px solid #9b9585;"></div>
+    <div style="position: absolute; left: 14px; top: 650px; width: 52px; height: 44px; background: #f3f1ea; border: 1.5px solid #9b9585; border-radius: 50%;"></div>
+    <div style="position: absolute; left: 0px; top: 750px; width: 26px; height: 66px; background: #f0eee5; border: 1.5px solid #9b9585;"></div>
+    <div style="position: absolute; left: 26px; top: 762px; width: 54px; height: 44px; background: #f0eee5; border: 1.5px solid #9b9585; border-radius: 44% 50% 50% 44%;"></div>
+    <div style="position: absolute; left: 0px; top: 840px; width: 200px; height: 100px; background: #f0eee5; border: 1.5px solid #9b9585;"></div>
+    <div style="position: absolute; left: 12px; top: 852px; width: 176px; height: 76px; border: 1.5px solid #9b9585; border-radius: 8px;"></div>
+    <div style="position: absolute; left: 182px; top: 880px; width: 12px; height: 12px; border-radius: 50%; background: #9b9585;"></div>
+    <!-- washer / dryer -->
+    <div style="position: absolute; left: 10px; top: 508px; width: 60px; height: 68px; background: #f0eee5; border: 1.5px solid #9b9585;"></div>
+    <div style="position: absolute; left: 24px; top: 524px; width: 32px; height: 32px; border: 1.5px solid #9b9585; border-radius: 50%;"></div>
+    <!-- closet rods + shelving -->
+    <div style="position: absolute; left: 1025px; top: -112px; width: 87px; height: 2px; background: #a29c8d;"></div>
+    <div style="position: absolute; left: 1025px; top: -100px; width: 87px; height: 1px; background: #cbc5b4;"></div>
+    <div style="position: absolute; left: 1025px; top: -238px; width: 87px; height: 2px; background: #a29c8d;"></div>
+    <div style="position: absolute; left: 1025px; top: -228px; width: 87px; height: 1px; background: #cbc5b4;"></div>
+    <div style="position: absolute; left: 40px; top: 420px; width: 260px; height: 2px; background: #a29c8d;"></div>
+    <div style="position: absolute; left: 40px; top: 432px; width: 260px; height: 1px; background: #cbc5b4;"></div>
+
+    <!-- ══ furniture ══ -->
+    <sc-if value="{{ showFurniture }}" hint-placeholder-val="{{ true }}">
+      <div style="position: absolute; left: 700px; top: 120px; width: 260px; height: 240px; background: #f1efe6; border: 1px dashed #bdb7a6;"></div>
+      <div style="position: absolute; left: 770px; top: 190px; width: 120px; height: 100px; background: #d5d0c1; border: 1.5px solid #9b9585;"></div>
+      <div style="position: absolute; left: 980px; top: 130px; width: 100px; height: 100px; background: #eae7dc; border: 1.5px solid #a29c8d; border-radius: 5px;"></div>
+      <div style="position: absolute; left: 1064px; top: 130px; width: 16px; height: 100px; background: #dcd8cb; border-left: 1.5px solid #a29c8d;"></div>
+      <div style="position: absolute; left: 980px; top: 260px; width: 100px; height: 100px; background: #eae7dc; border: 1.5px solid #a29c8d; border-radius: 5px;"></div>
+      <div style="position: absolute; left: 1064px; top: 260px; width: 16px; height: 100px; background: #dcd8cb; border-left: 1.5px solid #a29c8d;"></div>
+      <div style="position: absolute; left: 580px; top: 150px; width: 100px; height: 200px; background: #eae7dc; border: 1.5px solid #a29c8d; border-radius: 5px;"></div>
+      <div style="position: absolute; left: 580px; top: 150px; width: 16px; height: 200px; background: #dcd8cb; border-right: 1.5px solid #a29c8d;"></div>
+      <!-- dining -->
+      <div style="position: absolute; left: 790px; top: 620px; width: 160px; height: 160px; border: 1.5px solid #a29c8d; border-radius: 50%; background: #f1efe6;"></div>
+      <div style="position: absolute; left: 842px; top: 560px; width: 56px; height: 56px; border: 1.5px solid #a29c8d; background: #eae7dc; border-radius: 4px;"></div>
+      <div style="position: absolute; left: 842px; top: 784px; width: 56px; height: 56px; border: 1.5px solid #a29c8d; background: #eae7dc; border-radius: 4px;"></div>
+      <div style="position: absolute; left: 962px; top: 672px; width: 56px; height: 56px; border: 1.5px solid #a29c8d; background: #eae7dc; border-radius: 4px;"></div>
+      <div style="position: absolute; left: 722px; top: 672px; width: 56px; height: 56px; border: 1.5px solid #a29c8d; background: #eae7dc; border-radius: 4px;"></div>
+      <!-- bedroom -->
+      <div style="position: absolute; left: 0px; top: 160px; width: 268px; height: 200px; background: #f3f1ea; border: 1.5px solid #a29c8d;"></div>
+      <div style="position: absolute; left: 0px; top: 152px; width: 14px; height: 216px; background: #ddd8c9; border: 1.5px solid #9b9585;"></div>
+      <div style="position: absolute; left: 20px; top: 176px; width: 42px; height: 84px; background: #eae7dc; border: 1.5px solid #a29c8d; border-radius: 4px;"></div>
+      <div style="position: absolute; left: 20px; top: 268px; width: 42px; height: 84px; background: #eae7dc; border: 1.5px solid #a29c8d; border-radius: 4px;"></div>
+      <div style="position: absolute; left: 166.5px; top: 160px; width: 1.5px; height: 200px; background: #bdb7a6;"></div>
+      <div style="position: absolute; left: 0px; top: 76px; width: 64px; height: 64px; background: #ddd8c9; border: 1.5px solid #9b9585;"></div>
+      <div style="position: absolute; left: 384px; top: 200px; width: 96px; height: 96px; background: #eae7dc; border: 1.5px solid #a29c8d; border-radius: 5px;"></div>
+      <div style="position: absolute; left: 464px; top: 200px; width: 16px; height: 96px; background: #dcd8cb; border-left: 1.5px solid #a29c8d;"></div>
+      <!-- balcony -->
+      <div style="position: absolute; left: 751px; top: -170px; width: 64px; height: 64px; border: 1.5px solid #a29c8d; border-radius: 50%; background: #f1efe6;"></div>
+      <div style="position: absolute; left: 827px; top: -162px; width: 44px; height: 44px; border: 1.5px solid #a29c8d; background: #eae7dc; border-radius: 4px;"></div>
+      <div style="position: absolute; left: 695px; top: -162px; width: 44px; height: 44px; border: 1.5px solid #a29c8d; background: #eae7dc; border-radius: 4px;"></div>
+    </sc-if>
+
+    <!-- ══ room labels ══ -->
+    <div style="position: absolute; left: 760px; top: 400px; width: 260px; text-align: center;">
+      <div style="font-size: 19px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; color: #17150f;">Living Room</div>
+      <sc-if value="{{ showSizes }}" hint-placeholder-val="{{ true }}"><div style="margin-top: 5px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7d776a;">14'-8" × 12'-0"</div></sc-if>
+    </div>
+    <div style="position: absolute; left: 740px; top: 860px; width: 260px; text-align: center;">
+      <div style="font-size: 19px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; color: #17150f;">Dining Area</div>
+      <sc-if value="{{ showSizes }}" hint-placeholder-val="{{ true }}"><div style="margin-top: 5px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7d776a;">12'-6" × 11'-6"</div></sc-if>
+    </div>
+    <div style="position: absolute; left: 287px; top: 756px; width: 260px; text-align: center;">
+      <div style="font-size: 19px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; color: #17150f;">Kitchen</div>
+      <sc-if value="{{ showSizes }}" hint-placeholder-val="{{ true }}"><div style="margin-top: 5px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7d776a;">10'-2" × 8'-0"</div></sc-if>
+    </div>
+    <div style="position: absolute; left: 260px; top: 300px; width: 240px; text-align: center;">
+      <div style="font-size: 19px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; color: #17150f;">Bedroom</div>
+      <sc-if value="{{ showSizes }}" hint-placeholder-val="{{ true }}"><div style="margin-top: 5px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7d776a;">13'-0" × 12'-0"</div></sc-if>
+    </div>
+    <div style="position: absolute; left: 80px; top: 768px; width: 120px; text-align: center;">
+      <div style="font-size: 15px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; color: #17150f;">Bath</div>
+      <sc-if value="{{ showSizes }}" hint-placeholder-val="{{ true }}"><div style="margin-top: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #8a8477;">5'-0"×8'-0"</div></sc-if>
+    </div>
+    <div style="position: absolute; left: 613px; top: -256px; width: 340px; text-align: center;">
+      <div style="font-size: 19px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; color: #17150f;">Balcony</div>
+      <sc-if value="{{ showSizes }}" hint-placeholder-val="{{ true }}"><div style="margin-top: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7d776a;">11'-0" × 6'-0"</div></sc-if>
+    </div>
+    <div style="position: absolute; left: 1017px; top: -216px; width: 103px; text-align: center;">
+      <div style="font-size: 13px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #17150f;">Storage</div>
+      <sc-if value="{{ showSizes }}" hint-placeholder-val="{{ true }}"><div style="margin-top: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #8a8477;">2'-7"×2'-7"</div></sc-if>
+    </div>
+    <div style="position: absolute; left: 1017px; top: -99px; width: 103px; text-align: center;">
+      <div style="font-size: 13px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #17150f;">Coat cl.</div>
+      <sc-if value="{{ showSizes }}" hint-placeholder-val="{{ true }}"><div style="margin-top: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #8a8477;">2'-7"×2'-7"</div></sc-if>
+    </div>
+    <div style="position: absolute; left: 225px; top: 448px; width: 110px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #17150f;">Closet</div>
+    <div style="position: absolute; left: 0px; top: 582px; width: 80px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #17150f;">W / D</div>
+
+    <!-- ══ entrance annotation ══ -->
+    <div style="position: absolute; left: 1079px; top: 71px; width: 170px; height: 18px; text-align: center; transform: rotate(90deg); font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #a8442a; color: {{ accent }};">Entrance</div>
+    <div style="position: absolute; left: 1122px; top: 45px; width: 20px; height: 2px; background: #a8442a; background: {{ accent }};"></div>
+    <div style="position: absolute; left: 1113px; top: 37px; width: 0; height: 0; border-top: 7px solid transparent; border-bottom: 7px solid transparent; border-right: 9px solid #a8442a; border-right-color: {{ accent }};"></div>
+
+    <!-- ══ reference grid (A–F columns 5'-0", rows 1–5 at 5'-0") ══ -->
+    <sc-if value="{{ showGrid }}" hint-placeholder-val="{{ true }}">
+      <div style="position: absolute; left: 200px; top: -26px; width: 1px; height: 992px; background: rgba(168,68,42,0.4);"></div>
+      <div style="position: absolute; left: 400px; top: -26px; width: 1px; height: 992px; background: rgba(168,68,42,0.4);"></div>
+      <div style="position: absolute; left: 600px; top: -26px; width: 1px; height: 992px; background: rgba(168,68,42,0.4);"></div>
+      <div style="position: absolute; left: 800px; top: -26px; width: 1px; height: 992px; background: rgba(168,68,42,0.4);"></div>
+      <div style="position: absolute; left: 1000px; top: -26px; width: 1px; height: 992px; background: rgba(168,68,42,0.4);"></div>
+      <div style="position: absolute; left: -26px; top: 200px; width: 1172px; height: 1px; background: rgba(168,68,42,0.4);"></div>
+      <div style="position: absolute; left: -26px; top: 400px; width: 1172px; height: 1px; background: rgba(168,68,42,0.4);"></div>
+      <div style="position: absolute; left: -26px; top: 600px; width: 1172px; height: 1px; background: rgba(168,68,42,0.4);"></div>
+      <div style="position: absolute; left: -26px; top: 800px; width: 1172px; height: 1px; background: rgba(168,68,42,0.4);"></div>
+      <div style="position: absolute; left: 0; top: 4px; width: 200px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: #a8442a; text-shadow: 0 0 4px #fdfcf9, 0 0 4px #fdfcf9, 0 0 4px #fdfcf9;">A</div>
+      <div style="position: absolute; left: 200px; top: 4px; width: 200px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: #a8442a; text-shadow: 0 0 4px #fdfcf9, 0 0 4px #fdfcf9, 0 0 4px #fdfcf9;">B</div>
+      <div style="position: absolute; left: 400px; top: 4px; width: 200px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: #a8442a; text-shadow: 0 0 4px #fdfcf9, 0 0 4px #fdfcf9, 0 0 4px #fdfcf9;">C</div>
+      <div style="position: absolute; left: 600px; top: 4px; width: 200px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: #a8442a; text-shadow: 0 0 4px #fdfcf9, 0 0 4px #fdfcf9, 0 0 4px #fdfcf9;">D</div>
+      <div style="position: absolute; left: 800px; top: 4px; width: 200px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: #a8442a; text-shadow: 0 0 4px #fdfcf9, 0 0 4px #fdfcf9, 0 0 4px #fdfcf9;">E</div>
+      <div style="position: absolute; left: 1000px; top: 4px; width: 120px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: #a8442a; text-shadow: 0 0 4px #fdfcf9, 0 0 4px #fdfcf9, 0 0 4px #fdfcf9;">F</div>
+      <div style="position: absolute; left: 6px; top: 0; height: 200px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: #a8442a; text-shadow: 0 0 4px #fdfcf9, 0 0 4px #fdfcf9, 0 0 4px #fdfcf9;">1</div>
+      <div style="position: absolute; left: 6px; top: 200px; height: 200px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: #a8442a; text-shadow: 0 0 4px #fdfcf9, 0 0 4px #fdfcf9, 0 0 4px #fdfcf9;">2</div>
+      <div style="position: absolute; left: 6px; top: 400px; height: 200px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: #a8442a; text-shadow: 0 0 4px #fdfcf9, 0 0 4px #fdfcf9, 0 0 4px #fdfcf9;">3</div>
+      <div style="position: absolute; left: 6px; top: 600px; height: 200px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: #a8442a; text-shadow: 0 0 4px #fdfcf9, 0 0 4px #fdfcf9, 0 0 4px #fdfcf9;">4</div>
+      <div style="position: absolute; left: 6px; top: 800px; height: 140px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: #a8442a; text-shadow: 0 0 4px #fdfcf9, 0 0 4px #fdfcf9, 0 0 4px #fdfcf9;">5</div>
+    </sc-if>
+
+    <!-- ══ dimensions ══ -->
+    <sc-if value="{{ showDimensions }}" hint-placeholder-val="{{ true }}">
+      <div style="position: absolute; left: 214px; top: 1002px; width: 906px; height: 1px; background: #8b8577;"></div>
+      <div style="position: absolute; left: 1119px; top: 996px; width: 1px; height: 13px; background: #8b8577;"></div>
+      <div style="position: absolute; left: 214px; top: 996px; width: 1px; height: 13px; background: #8b8577;"></div>
+      <div style="position: absolute; left: 214px; top: 1012px; width: 906px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #57534a;">22'-8"</div>
+      <div style="position: absolute; left: 0px; top: 1002px; width: 200px; height: 1px; background: #8b8577;"></div>
+      <div style="position: absolute; left: 199px; top: 996px; width: 1px; height: 13px; background: #8b8577;"></div>
+      <div style="position: absolute; left: 0px; top: 996px; width: 1px; height: 13px; background: #8b8577;"></div>
+      <div style="position: absolute; left: 0px; top: 1012px; width: 200px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #57534a;">5'-0"</div>
+      <div style="position: absolute; left: -26px; top: 1050px; width: 1172px; height: 1px; background: #8b8577;"></div>
+      <div style="position: absolute; left: 1145px; top: 1044px; width: 1px; height: 13px; background: #8b8577;"></div>
+      <div style="position: absolute; left: -26px; top: 1044px; width: 1px; height: 13px; background: #8b8577;"></div>
+      <div style="position: absolute; left: -26px; top: 1060px; width: 1172px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.04em; color: #17150f;">29'-4"</div>
+      <div style="position: absolute; left: -63px; top: 0; width: 1px; height: 480px; background: #8b8577;"></div>
+      <div style="position: absolute; left: -69px; top: 0; width: 13px; height: 1px; background: #8b8577;"></div>
+      <div style="position: absolute; left: -69px; top: 479px; width: 13px; height: 1px; background: #8b8577;"></div>
+      <div style="position: absolute; left: -318px; top: 230px; width: 480px; height: 20px; text-align: center; transform: rotate(-90deg); font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #57534a;">12'-0"</div>
+      <div style="position: absolute; left: -63px; top: 494px; width: 1px; height: 112px; background: #8b8577;"></div>
+      <div style="position: absolute; left: -69px; top: 494px; width: 13px; height: 1px; background: #8b8577;"></div>
+      <div style="position: absolute; left: -69px; top: 605px; width: 13px; height: 1px; background: #8b8577;"></div>
+      <div style="position: absolute; left: -134px; top: 540px; width: 112px; height: 20px; text-align: center; transform: rotate(-90deg); font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #57534a;">2'-10"</div>
+      <div style="position: absolute; left: -63px; top: 620px; width: 1px; height: 320px; background: #8b8577;"></div>
+      <div style="position: absolute; left: -69px; top: 620px; width: 13px; height: 1px; background: #8b8577;"></div>
+      <div style="position: absolute; left: -69px; top: 939px; width: 13px; height: 1px; background: #8b8577;"></div>
+      <div style="position: absolute; left: -238px; top: 770px; width: 320px; height: 20px; text-align: center; transform: rotate(-90deg); font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #57534a;">8'-0"</div>
+      <div style="position: absolute; left: 1181px; top: -272px; width: 1px; height: 246px; background: #8b8577;"></div>
+      <div style="position: absolute; left: 1175px; top: -272px; width: 13px; height: 1px; background: #8b8577;"></div>
+      <div style="position: absolute; left: 1175px; top: -27px; width: 13px; height: 1px; background: #8b8577;"></div>
+      <div style="position: absolute; left: 1074px; top: -159px; width: 246px; height: 20px; text-align: center; transform: rotate(90deg); font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #57534a;">6'-2"</div>
+      <div style="position: absolute; left: 1181px; top: -26px; width: 1px; height: 992px; background: #8b8577;"></div>
+      <div style="position: absolute; left: 1175px; top: -26px; width: 13px; height: 1px; background: #8b8577;"></div>
+      <div style="position: absolute; left: 1175px; top: 965px; width: 13px; height: 1px; background: #8b8577;"></div>
+      <div style="position: absolute; left: 702px; top: 460px; width: 992px; height: 20px; text-align: center; transform: rotate(90deg); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.04em; color: #17150f;">24'-10"</div>
+    </sc-if>
+  </div>
+
+  <!-- ══ legend column ══ -->
+  <div style="position: absolute; left: 1470px; top: 300px; width: 290px; display: flex; flex-direction: column; gap: 30px;">
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #7d776a; padding-bottom: 10px; border-bottom: 1px solid #d8d3c4;">Room schedule</div>
+      <div style="display: grid; grid-template-columns: 1fr auto; gap: 9px 12px; font-size: 13px; color: #17150f;">
+        <span>Living Room</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #57534a;">14'-8" × 12'-0"</span>
+        <span>Dining Area</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #57534a;">12'-6" × 11'-6"</span>
+        <span>Kitchen</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #57534a;">10'-2" × 8'-0"</span>
+        <span>Bedroom</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #57534a;">13'-0" × 12'-0"</span>
+        <span>Bathroom</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #57534a;">5'-0" × 8'-0"</span>
+        <span>Closets &amp; W/D</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #57534a;">33 sf</span>
+        <span style="color: #7d776a;">Balcony</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7d776a;">11'-0" × 6'-0"</span>
+        <span style="color: #7d776a;">Storage (off balcony)</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7d776a;">2'-7" × 2'-7"</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr auto; gap: 9px 12px; margin-top: 6px; padding-top: 14px; border-top: 1px solid #d8d3c4; font-size: 13px; font-weight: 600; color: #17150f;">
+        <span>Interior total</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px;">650 sf</span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #7d776a; padding-bottom: 10px; border-bottom: 1px solid #d8d3c4;">Graphic scale</div>
+      <div style="display: flex; height: 11px; width: 240px; border: 1px solid #17150f;">
+        <div style="flex: 1; background: #17150f;"></div>
+        <div style="flex: 1; background: #f6f4ef;"></div>
+        <div style="flex: 1; background: #17150f;"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; width: 254px; margin-left: -7px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #57534a;">
+        <span>0</span><span>2</span><span>4</span><span>6 ft</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 18px;">
+      <div style="position: relative; width: 58px; height: 58px; border: 1px solid #b5afa0; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 0; height: 0; border-left: 9px solid transparent; border-right: 9px solid transparent; border-bottom: 26px solid #a8442a; border-bottom-color: {{ accent }}; margin-bottom: 4px;"></div>
+        <div style="position: absolute; bottom: 3px; left: 0; right: 0; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #57534a;">N</div>
+      </div>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; line-height: 1.7; letter-spacing: 0.08em; text-transform: uppercase; color: #7d776a;">True north<br>assumed</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #7d776a; padding-bottom: 10px; border-bottom: 1px solid #d8d3c4;">Notes</div>
+      <div style="font-size: 12.5px; line-height: 1.65; color: #57534a; text-wrap: pretty;">
+        Plan reconstructed from a single 3D isometric reference and a stated area of 650 sq ft. Entry is on the east wall. The bathroom is a 5'-0" × 8'-0" run — tub across the full width at the south end, then toilet, then sink. Dimensions are inferred and <strong style="color: #17150f; font-weight: 600;">must be field-verified</strong>.
+      </div>
+      <div style="font-size: 12.5px; line-height: 1.65; color: #57534a; text-wrap: pretty;">
+        Exterior walls 8" nominal; interior partitions 4½". Bedroom window per site photos; other glazing not yet confirmed. The pass-through is the open east end of the bar, past where the wall stops; the dashed line marks the bulkhead above it. Red grid is markup only: columns A–F and rows 1–5 at 5'-0".
+      </div>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 56px; right: 56px; bottom: 30px; display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #9a9488;">
+    <span>Drawn from reference image · not for construction</span>
+    <span>A-101</span>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1820, &quot;height&quot;: 1700 },
+  &quot;showFurniture&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Drawing&quot; },
+  &quot;showDimensions&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Drawing&quot; },
+  &quot;showSizes&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Drawing&quot; },
+  &quot;showGrid&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Markup&quot; },
+  &quot;accent&quot;: { &quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#a8442a&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;options&quot;: [&quot;#a8442a&quot;, &quot;#2f5d50&quot;, &quot;#3a4b7a&quot;, &quot;#8a6d1f&quot;], &quot;section&quot;: &quot;Drawing&quot; }
+}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    return {
+      showFurniture: p.showFurniture ?? false,
+      showDimensions: p.showDimensions ?? true,
+      showSizes: p.showSizes ?? true,
+      showGrid: p.showGrid ?? true,
+      accent: p.accent ?? "#a8442a"
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  html, body { margin: 0; height: 100%; background: #EDEEE0; -webkit-font-smoothing: antialiased; }
+  a { color: #3F88C5; text-decoration: none; }
+  a:hover { color: #2F6EA3; text-decoration: underline; }
+  /* the engine swaps these classes on the canvas while orbiting / dragging */
+  canvas#view { cursor: grab; }
+  canvas#view.grabbing { cursor: grabbing; }
+  canvas#view.moving { cursor: move; }
+</style>
+<script src="./unit-model.js"></script>
+</helmet>
+
+<div data-screen-label="Unit Model" style="display: grid; grid-template-columns: 1fr 330px; grid-template-rows: auto 1fr; height: 100dvh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', ui-sans-serif, sans-serif; font-size: 14px; line-height: 1.5; color: #393E41; background: #EDEEE0;">
+
+  <!-- ══ rail ══ -->
+  <header ref="{{ headRef }}" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 52px; background: #F6F7EB; border-bottom: 1px solid #DCDDCB; overflow-x: auto;">
+    <div ref="{{ titleRef }}" style="display: flex; align-items: baseline; gap: 9px; flex: none;">
+      <button type="button" ref="{{ nameRef }}" onClick="{{ onApts }}" title="Switch apartment" style="display: flex; align-items: center; gap: 8px; font: inherit; font-family: Futura, 'Futura PT', 'Century Gothic', 'URW Gothic', sans-serif; font-weight: 500; font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap; color: #393E41; background: transparent; border: 0; border-radius: 6px; padding: 4px 7px; margin-left: -7px; cursor: pointer; flex: none;" style-hover="background:#EBECDD">
+        <span style="max-width: 258px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ activeName }}</span>
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="M2.2 4.1 5.5 7.3l3.3-3.2"></path></svg>
+      </button>
+      <sc-if value="{{ showArea }}" hint-placeholder-val="{{ true }}">
+        <span ref="{{ tagRef }}" style="font-family: Menlo, ui-monospace, monospace; font-size: 11px; color: #949A9E; white-space: nowrap; flex: none;">{{ areaTag }}</span>
+      </sc-if>
+    </div>
+
+    <div role="group" aria-label="Wall height" style="display: flex; align-items: center; gap: 1px; background: #EBECDD; border: 1px solid #DCDDCB; border-radius: 7px; padding: 1px; flex: none;">
+      <button type="button" onClick="{{ onWallCut }}" style="font: inherit; font-size: 12px; border: 0; padding: 5px 8px; border-radius: 5px; cursor: pointer; white-space: nowrap; background: {{ wallCut.bg }}; color: {{ wallCut.fg }};">Cutaway</button>
+      <button type="button" onClick="{{ onWallFull }}" style="font: inherit; font-size: 12px; border: 0; padding: 5px 8px; border-radius: 5px; cursor: pointer; white-space: nowrap; background: {{ wallFull.bg }}; color: {{ wallFull.fg }};">Full</button>
+    </div>
+
+    <div role="group" aria-label="Projection" style="display: flex; align-items: center; gap: 1px; background: #EBECDD; border: 1px solid #DCDDCB; border-radius: 7px; padding: 1px; flex: none;">
+      <button type="button" onClick="{{ onPersp }}" style="font: inherit; font-size: 12px; border: 0; padding: 5px 8px; border-radius: 5px; cursor: pointer; white-space: nowrap; background: {{ persp.bg }}; color: {{ persp.fg }};">3D</button>
+      <button type="button" onClick="{{ onOrtho }}" style="font: inherit; font-size: 12px; border: 0; padding: 5px 8px; border-radius: 5px; cursor: pointer; white-space: nowrap; background: {{ ortho.bg }}; color: {{ ortho.fg }};">Plan</button>
+    </div>
+
+    <div role="group" aria-label="Camera" style="display: flex; align-items: center; gap: 1px; background: #EBECDD; border: 1px solid #DCDDCB; border-radius: 7px; padding: 1px; flex: none;">
+      <button type="button" onClick="{{ onViewIso }}" style="font: inherit; font-size: 12px; border: 0; padding: 5px 8px; border-radius: 5px; cursor: pointer; white-space: nowrap; background: transparent; color: #61666A;" style-hover="background:#F6F7EB;color:#393E41">Iso</button>
+      <button type="button" onClick="{{ onViewTop }}" style="font: inherit; font-size: 12px; border: 0; padding: 5px 8px; border-radius: 5px; cursor: pointer; white-space: nowrap; background: transparent; color: #61666A;" style-hover="background:#F6F7EB;color:#393E41">Top</button>
+    </div>
+
+    <div role="group" aria-label="Handing" style="display: flex; align-items: center; gap: 1px; background: #EBECDD; border: 1px solid #DCDDCB; border-radius: 7px; padding: 1px; flex: none;">
+      <button type="button" onClick="{{ onHandPlan }}" style="font: inherit; font-size: 12px; border: 0; padding: 5px 8px; border-radius: 5px; cursor: pointer; white-space: nowrap; background: {{ handPlan.bg }}; color: {{ handPlan.fg }};">As drawn</button>
+      <button type="button" onClick="{{ onHandMirror }}" style="font: inherit; font-size: 12px; border: 0; padding: 5px 8px; border-radius: 5px; cursor: pointer; white-space: nowrap; background: {{ handMirror.bg }}; color: {{ handMirror.fg }};">Mirrored</button>
+    </div>
+
+    <div data-spacer="1" style="flex: 1; min-width: 4px;"></div>
+
+    <div style="position: sticky; right: 0; flex: none; display: flex; align-items: center; gap: 10px; background: #F6F7EB; padding-left: 10px; box-shadow: -10px 0 10px -6px #F6F7EB;">
+      <div ref="{{ filtersRef }}" style="flex: none;">
+      <button type="button" onClick="{{ onFilters }}" style="display: flex; align-items: center; gap: 8px; font: inherit; font-size: 12px; border-radius: 7px; padding: 6px 9px; cursor: pointer; white-space: nowrap; background: {{ filterBtn.bg }}; color: {{ filterBtn.fg }}; border: 1px solid {{ filterBtn.bd }};">
+        <span>Filters</span>
+        <span style="font-family: Menlo, ui-monospace, monospace; font-size: 10.5px; opacity: 0.7;">{{ filterCount }}</span>
+      </button>
+      </div>
+      <sc-if value="{{ anyPlaced }}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{ onClearAll }}" title="{{ clearTitle }}" style="font: inherit; font-size: 12px; background: #F6F7EB; border: 1px solid #C0341F; border-radius: 7px; padding: 6px 9px; cursor: pointer; white-space: nowrap; color: #C0341F; flex: none;" style-hover="background:#F7E4E1">Clear furniture</button>
+      </sc-if>
+    </div>
+  </header>
+
+  <sc-if value="{{ aptOpen }}" hint-placeholder-val="{{ false }}">
+    <div ref="{{ aptRef }}" style="position: fixed; left: {{ aptLeft }}; top: {{ aptTop }}; width: 282px; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 8px; padding: 5px; box-shadow: 0 1px 2px rgba(57,62,65,0.08), 0 8px 24px rgba(57,62,65,0.10); z-index: 20; display: flex; flex-direction: column; gap: 1px;">
+      <div style="font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 9.5px; font-weight: 500; color: #949A9E; padding: 5px 8px 6px;">Apartments in consideration</div>
+      <sc-for list="{{ apartments }}" as="a" hint-placeholder-count="2">
+        <div style="display: grid; grid-template-columns: 1fr 24px; align-items: center; border-radius: 6px; background: {{ a.bg }};" style-hover="background:#E2EDF7">
+          <button type="button" onClick="{{ a.on }}" style="display: grid; grid-template-columns: 13px 1fr; align-items: baseline; gap: 9px; width: 100%; text-align: left; font: inherit; font-size: 13px; color: #393E41; background: transparent; border: 0; border-radius: 6px; padding: 7px 2px 7px 8px; cursor: pointer; min-width: 0;">
+            <span style="font-size: 10px; line-height: 1.4; color: #3F88C5;">{{ a.mark }}</span>
+            <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ a.name }}</span>
+              <span style="font-family: Menlo, ui-monospace, monospace; font-size: 10.5px; color: #949A9E;">{{ a.meta }}</span>
+            </span>
+          </button>
+          <button type="button" title="{{ a.delTitle }}" aria-label="{{ a.delTitle }}" onClick="{{ a.onDel }}" style="display: {{ a.delShow }}; font: inherit; font-size: 15px; line-height: 1; color: #949A9E; background: transparent; border: 0; border-radius: 4px; padding: 3px 6px; margin-right: 3px; cursor: pointer; justify-self: end;" style-hover="color:#C0341F;background:#F7E4E1">×</button>
+        </div>
+      </sc-for>
+      <div style="height: 1px; background: #DCDDCB; margin: 5px 3px;"></div>
+      <button type="button" onClick="{{ onAddOpen }}" style="display: grid; grid-template-columns: 13px 1fr; align-items: center; gap: 9px; width: 100%; text-align: left; font: inherit; font-size: 13px; color: #3F88C5; background: transparent; border: 0; border-radius: 6px; padding: 7px 8px; cursor: pointer;" style-hover="background:#E2EDF7">
+        <span style="font-size: 15px; line-height: 1;">+</span>
+        <span>Add an apartment</span>
+      </button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ addOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ onAddBackdrop }}" style="position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(57,62,65,0.34);">
+      <div onClick="{{ stop }}" style="width: 470px; max-width: 100%; max-height: 100%; overflow: hidden auto; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 12px; box-shadow: 0 24px 64px rgba(57,62,65,0.28); padding: 20px 20px 18px;">
+        <h3 style="margin: 0 0 5px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 11px; font-weight: 500; color: #393E41;">Add an apartment</h3>
+        <p style="font-size: 12px; color: #61666A; margin: 0 0 16px; max-width: 56ch;">A floor plan to model from, and at least three photos so the rooms can be read against it.</p>
+
+        <label style="display: block; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.12em; font-size: 9.5px; font-weight: 500; color: #949A9E; margin-bottom: 5px;">Name</label>
+        <input type="text" value="{{ draftName }}" onChange="{{ onDraftName }}" placeholder="Goldridge Apartments" style="width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; color: #393E41; background: #FFFFFF; border: 1px solid #DCDDCB; border-radius: 7px; padding: 7px 9px; margin-bottom: 16px;" />
+
+        <label style="display: block; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.12em; font-size: 9.5px; font-weight: 500; color: #949A9E; margin-bottom: 5px;">Floor plan</label>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+          <button type="button" onClick="{{ onPickPlan }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 5px 10px; cursor: pointer; flex: none;" style-hover="color:#393E41;border-color:#949A9E">Choose file</button>
+          <span style="font-family: Menlo, ui-monospace, monospace; font-size: 11px; color: {{ planColor }}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;">{{ planLabel }}</span>
+        </div>
+
+        <label style="display: block; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.12em; font-size: 9.5px; font-weight: 500; color: #949A9E; margin-bottom: 5px;">Photos</label>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button type="button" onClick="{{ onPickPhotos }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 5px 10px; cursor: pointer; flex: none;" style-hover="color:#393E41;border-color:#949A9E">Add photos</button>
+          <span style="font-family: Menlo, ui-monospace, monospace; font-size: 11px; color: {{ photoColor }};">{{ photoLabel }}</span>
+        </div>
+        <sc-if value="{{ hasThumbs }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;">
+            <sc-for list="{{ thumbs }}" as="t" hint-placeholder-count="0">
+              <span style="width: 54px; height: 54px; border-radius: 6px; border: 1px solid #DCDDCB; display: block; background-color: #EBECDD; background-size: cover; background-position: center; background-image: {{ t.bg }};"></span>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 20px;">
+          <button type="button" onClick="{{ onAddClose }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 5px 11px; cursor: pointer;" style-hover="color:#393E41;border-color:#949A9E">Cancel</button>
+          <button type="button" onClick="{{ onAddSubmit }}" disabled="{{ addDisabled }}" style="font: inherit; font-size: 11.5px; color: {{ addBtn.fg }}; background: {{ addBtn.bg }}; border: 1px solid {{ addBtn.bd }}; border-radius: 6px; padding: 5px 11px; cursor: {{ addBtn.cursor }};">Add apartment</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ onConfirmCancel }}" style="position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(57,62,65,0.34);">
+      <div onClick="{{ stop }}" style="width: 380px; max-width: 100%; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 12px; box-shadow: 0 24px 64px rgba(57,62,65,0.28); padding: 20px 20px 18px;">
+        <h3 style="margin: 0 0 5px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 11px; font-weight: 500; color: #393E41;">Delete this apartment?</h3>
+        <p style="font-size: 12.5px; color: #61666A; margin: 0; max-width: 48ch;">{{ confirmBody }}</p>
+        <div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 20px;">
+          <button type="button" onClick="{{ onConfirmCancel }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 5px 11px; cursor: pointer;" style-hover="color:#393E41;border-color:#949A9E">Keep it</button>
+          <button type="button" onClick="{{ onConfirmDelete }}" style="font: inherit; font-size: 11.5px; color: #FFFFFF; background: #C0341F; border: 1px solid #C0341F; border-radius: 6px; padding: 5px 11px; cursor: pointer;" style-hover="background:#9E2A18;border-color:#9E2A18">Delete</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <input type="file" accept="image/*,application/pdf" ref="{{ planRef }}" onChange="{{ onPlanFile }}" style="display: none;" />
+  <input type="file" accept="image/*" multiple="{{ true }}" ref="{{ photoRef }}" onChange="{{ onPhotoFiles }}" style="display: none;" />
+
+  <sc-if value="{{ filtersOpen }}" hint-placeholder-val="{{ false }}">
+    <div ref="{{ menuRef }}" style="position: fixed; right: {{ menuRight }}; top: {{ menuTop }}; min-width: 208px; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 8px; padding: 5px; box-shadow: 0 1px 2px rgba(57,62,65,0.08), 0 8px 24px rgba(57,62,65,0.10); z-index: 20; display: flex; flex-direction: column; gap: 1px;">
+      <sc-for list="{{ filters }}" as="f" hint-placeholder-count="5">
+        <button type="button" onClick="{{ f.on }}" style="display: grid; grid-template-columns: 15px 1fr; align-items: center; gap: 10px; width: 100%; text-align: left; font: inherit; font-size: 13px; color: #393E41; background: transparent; border: 0; border-radius: 6px; padding: 6px 8px; cursor: pointer;" style-hover="background:#E2EDF7">
+          <span style="width: 15px; height: 15px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; color: #FFFFFF; background: {{ f.boxBg }}; border: 1px solid {{ f.boxBd }};">{{ f.mark }}</span>
+          <span>{{ f.label }}</span>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- ══ stage ══ -->
+  <div onDragOver="{{ onStageOver }}" onDrop="{{ onStageDrop }}" onDragLeave="{{ onStageLeave }}" style="position: relative; overflow: hidden; background: radial-gradient(120% 90% at 50% 8%, #F3F3E7, #DCDDCB);">
+    <canvas id="view" ref="{{ canvasRef }}" style="display: block; width: 100%; height: 100%; touch-action: none;"></canvas>
+    <sc-if value="{{ showTools }}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; left: {{ toolsLeft }}; top: {{ toolsTop }}; transform: translate(-50%, -100%); display: flex; gap: 2px; padding: 3px; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 9px; box-shadow: 0 1px 2px rgba(57,62,65,0.10), 0 6px 18px rgba(57,62,65,0.14); z-index: 5;">
+        <button type="button" title="Rotate 90°" aria-label="Rotate 90 degrees" onClick="{{ onRot90 }}" style="display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; background: transparent; border: 0; border-radius: 7px; color: #61666A; cursor: pointer;" style-hover="color:#393E41;background:#E2EDF7">
+          <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8A5 5 0 1 1 11.4 4.3"></path><path d="M11.2 1.4v3.3h-3.3"></path></svg>
+        </button>
+        <button type="button" title="Duplicate" aria-label="Duplicate" onClick="{{ onDup }}" style="display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; background: transparent; border: 0; border-radius: 7px; color: #61666A; cursor: pointer;" style-hover="color:#393E41;background:#E2EDF7">
+          <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><rect x="5.9" y="5.9" width="7.4" height="7.6" rx="1.2"></rect><path d="M10.6 3.4H3.9a1.2 1.2 0 0 0-1.2 1.2v6.7"></path></svg>
+        </button>
+        <button type="button" title="Remove" aria-label="Remove" onClick="{{ onDel }}" style="display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; background: transparent; border: 0; border-radius: 7px; color: #61666A; cursor: pointer;" style-hover="color:#C0341F;background:#F7E4E1">
+          <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="M2.9 4.4h10.2"></path><path d="M6.4 4.4V2.9h3.2v1.5"></path><path d="M4.3 4.4l.6 8.3h6.2l.6-8.3"></path><path d="M6.8 6.8v3.6M9.2 6.8v3.6"></path></svg>
+        </button>
+      </div>
+    </sc-if>
+    <div style="position: absolute; left: 14px; bottom: 12px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; max-width: min(70vw, 460px);">
+      <sc-if value="{{ warning }}" hint-placeholder-val="{{ false }}">
+        <div style="background: rgba(246,247,235,0.9); border: 1px solid #C0341F; color: #C0341F; border-radius: 7px; padding: 5px 9px; backdrop-filter: blur(8px); box-shadow: 0 1px 2px rgba(57,62,65,0.08), 0 8px 24px rgba(57,62,65,0.10); width: max-content; max-width: 100%; font-family: Menlo, ui-monospace, monospace; font-size: 12px;">Overlaps a wall or fixture — it won’t fit there</div>
+      </sc-if>
+      <div style="background: rgba(246,247,235,0.9); border: 1px solid #DCDDCB; border-radius: 7px; padding: 5px 9px; backdrop-filter: blur(8px); box-shadow: 0 1px 2px rgba(57,62,65,0.08), 0 8px 24px rgba(57,62,65,0.10); width: max-content; max-width: 100%; color: #949A9E; font-size: 11.5px;">Drag to orbit · shift+drag to pan · scroll to zoom · drag furniture to place it</div>
+    </div>
+  </div>
+
+  <!-- ══ panel ══ -->
+  <aside style="background: #F6F7EB; border-left: 1px solid #DCDDCB; display: flex; flex-direction: column; min-height: 0;">
+    <div role="tablist" style="display: flex; border-bottom: 1px solid #DCDDCB; flex: none;">
+      <button type="button" role="tab" onClick="{{ onTabAdd }}" style="flex: 1; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; font-weight: 500; padding: 11px 2px; background: transparent; border: 0; border-bottom: 2px solid {{ tabAdd.bd }}; color: {{ tabAdd.fg }}; cursor: pointer;">Add</button>
+      <button type="button" role="tab" onClick="{{ onTabList }}" style="flex: 1; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; font-weight: 500; padding: 11px 2px; background: transparent; border: 0; border-bottom: 2px solid {{ tabList.bd }}; color: {{ tabList.fg }}; cursor: pointer;">Placed</button>
+      <button type="button" role="tab" onClick="{{ onTabFit }}" style="flex: 1; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; font-weight: 500; padding: 11px 2px; background: transparent; border: 0; border-bottom: 2px solid {{ tabFit.bd }}; color: {{ tabFit.fg }}; cursor: pointer;">Fit</button>
+      <button type="button" role="tab" onClick="{{ onTabCfg }}" style="flex: 1; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; font-weight: 500; padding: 11px 2px; background: transparent; border: 0; border-bottom: 2px solid {{ tabCfg.bd }}; color: {{ tabCfg.fg }}; cursor: pointer;">Dimensions</button>
+    </div>
+
+    <!-- ── Add ── -->
+    <sc-if value="{{ isAdd }}" hint-placeholder-val="{{ true }}">
+      <div role="tabpanel" style="flex: 1; overflow: hidden auto; padding: 14px; min-height: 0;">
+        <p style="font-size: 12px; color: #61666A; margin: 0 0 10px; max-width: 60ch;">Drag a piece onto the plan to place it — it settles on the nearest clear spot if you let go over a wall. Drag it again to move it, <b>R</b> rotates, <b>delete</b> removes. Everything saves as you go.</p>
+        <sc-for list="{{ catalog }}" as="grp" hint-placeholder-count="4">
+          <div style="display: flex; flex-direction: column; gap: 1px; margin-bottom: 16px;">
+            <h4 style="margin: 0 0 5px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">{{ grp.g }}</h4>
+            <sc-for list="{{ grp.items }}" as="it" hint-placeholder-count="5">
+              <div draggable="true" onDragStart="{{ it.onDragStart }}" onDragEnd="{{ onDragEnd }}" style="display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 10px; width: 100%; text-align: left; font: inherit; font-size: 13px; color: #393E41; background: transparent; border: 0; border-radius: 6px; padding: 6px 8px; cursor: grab;" style-hover="background:#E2EDF7">
+                <span>{{ it.n }}</span>
+                <span style="font-family: Menlo, ui-monospace, monospace; font-size: 11px; color: #949A9E; white-space: nowrap;">{{ it.d }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- ── Placed ── -->
+    <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+      <div role="tabpanel" style="flex: 1; overflow: hidden auto; padding: 14px; min-height: 0;">
+        <sc-if value="{{ hasItems }}" hint-placeholder-val="{{ true }}">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+            <thead>
+              <tr>
+                <th style="text-align: left; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.11em; font-size: 9.5px; font-weight: 500; color: #949A9E; padding: 0 0 6px; border-bottom: 1px solid #DCDDCB;">Piece</th>
+                <th style="text-align: right; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.11em; font-size: 9.5px; font-weight: 500; color: #949A9E; padding: 0 0 6px; border-bottom: 1px solid #DCDDCB;">W×D×H</th>
+                <th style="text-align: right; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.11em; font-size: 9.5px; font-weight: 500; color: #949A9E; padding: 0 0 6px; border-bottom: 1px solid #DCDDCB;">Fit</th>
+                <th style="border-bottom: 1px solid #DCDDCB;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ placed }}" as="row" hint-placeholder-count="3">
+                <tr onClick="{{ row.on }}" style="cursor: pointer; color: {{ row.color }};">
+                  <td style="padding: 6px 0; border-bottom: 1px solid #EBECDD; vertical-align: baseline;">{{ row.name }}</td>
+                  <td style="padding: 6px 0; border-bottom: 1px solid #EBECDD; text-align: right; font-family: Menlo, ui-monospace, monospace; font-size: 11.5px; white-space: nowrap; color: #61666A;">{{ row.dims }}</td>
+                  <td style="padding: 6px 0; border-bottom: 1px solid #EBECDD; text-align: right; font-family: Menlo, ui-monospace, monospace; font-size: 11.5px; white-space: nowrap; color: {{ row.flagColor }};">{{ row.flag }}</td>
+                  <td style="padding: 6px 0; border-bottom: 1px solid #EBECDD; text-align: right;">
+                    <button type="button" title="Remove" onClick="{{ row.onRemove }}" style="font: inherit; font-size: 14px; line-height: 1; color: #949A9E; background: transparent; border: 0; border-radius: 4px; padding: 1px 5px; cursor: pointer;" style-hover="color:#C0341F;background:#EBECDD">×</button>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+          <div style="display: flex; justify-content: space-between; margin-top: 12px;">
+            <span style="font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">Floor covered</span>
+            <span style="font-family: Menlo, ui-monospace, monospace; font-size: 12px; font-variant-numeric: tabular-nums;">{{ coverage }}</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 14px;">
+            <button type="button" onClick="{{ onCopyList }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="color:#393E41;border-color:#949A9E">{{ copyLabel }}</button>
+            <button type="button" onClick="{{ onClearAll }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="color:#C0341F;border-color:#C0341F">Clear furniture</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noItems }}" hint-placeholder-val="{{ false }}">
+          <div style="color: #949A9E; font-size: 12.5px; padding: 2px 0;">Nothing placed yet — drag something in from the <b>Add</b> tab. What you add becomes your shopping list, every piece with the footprint to check against a product page.</div>
+        </sc-if>
+
+        <h4 style="margin: 18px 0 7px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">Save state</h4>
+
+        <!-- the working copy: instant, effortless, and tied to this exact origin -->
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: baseline; padding: 9px 10px; background: #EBECDD; border-radius: 7px; margin-bottom: 8px;">
+          <span style="font-size: 12.5px; color: #393E41;">{{ storeLabel }}</span>
+          <span style="font-family: Menlo, ui-monospace, monospace; font-size: 11px; color: #949A9E;">{{ storeWhere }}</span>
+          <sc-for list="{{ projectRows }}" as="r" hint-placeholder-count="2">
+            <span style="font-size: 12.5px; color: #61666A;">{{ r.name }}</span>
+            <span style="font-family: Menlo, ui-monospace, monospace; font-size: 11px; color: #949A9E;">{{ r.pieces }}</span>
+          </sc-for>
+        </div>
+        <sc-if value="{{ storeBad }}" hint-placeholder-val="{{ false }}">
+          <div style="background: rgba(246,247,235,0.9); border: 1px solid #C0341F; color: #C0341F; border-radius: 7px; padding: 6px 9px; margin-bottom: 8px; font-size: 12.5px;">This browser is blocking storage, so nothing is being kept automatically. Save a project file before you close the tab.</div>
+        </sc-if>
+
+        <!-- the linked file: adopted once, then written to on its own -->
+        <sc-if value="{{ linkOn }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; align-items: baseline; gap: 8px; padding: 8px 10px; background: #E4F2EE; border: 1px solid #44BBA4; border-radius: 7px; margin-bottom: 8px;">
+            <span style="font-size: 12.5px; color: #2F7F6E; flex: 1;">Saving into <b>{{ linkName }}</b> as you work. Close the tab whenever &mdash; it is already on disk.</span>
+            <button type="button" onClick="{{ onUnlink }}" style="font: inherit; font-size: 11px; color: #2F7F6E; background: transparent; border: 0; padding: 2px 4px; cursor: pointer; text-decoration: underline; flex: none;">Disconnect</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ linkLost }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 8px 10px; background: #FBF1DC; border: 1px solid #D89B2C; border-radius: 7px; margin-bottom: 8px;">
+            <div style="font-size: 12.5px; color: #8A6216; margin-bottom: 6px;"><b>{{ linkName }}</b> is disconnected. Browsers drop file permission between visits &mdash; reconnect and the work in that file comes back.</div>
+            <button type="button" onClick="{{ onReconnect }}" style="font: inherit; font-size: 11.5px; color: #FFFFFF; background: #3F88C5; border: 1px solid #3F88C5; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="background:#356F9F;border-color:#356F9F">Reconnect</button>
+          </div>
+        </sc-if>
+
+        <p style="font-size: 12px; color: #61666A; margin: 0 0 10px; max-width: 60ch;">Autosave only reaches this browser at this address &mdash; open the same model from a different address and it starts empty. A project file is the copy that survives: it holds <b>every</b> apartment&rsquo;s furniture and dimensions in one document.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+          <sc-if value="{{ linkOff }}" hint-placeholder-val="{{ true }}">
+            <button type="button" onClick="{{ onLink }}" style="font: inherit; font-size: 11.5px; color: #FFFFFF; background: #3F88C5; border: 1px solid #3F88C5; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="background:#356F9F;border-color:#356F9F">Keep in a file&hellip;</button>
+            <button type="button" onClick="{{ onOpenLinked }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="color:#393E41;border-color:#949A9E">Open a project&hellip;</button>
+          </sc-if>
+          <button type="button" onClick="{{ onSaveProject }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="color:#393E41;border-color:#949A9E">{{ projectLabel }}</button>
+          <button type="button" onClick="{{ onPickProject }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="color:#393E41;border-color:#949A9E">Open a copy&hellip;</button>
+        </div>
+        <sc-if value="{{ linkNone }}" hint-placeholder-val="{{ false }}">
+          <p style="font-size: 11.5px; color: #949A9E; margin: 8px 0 0; max-width: 60ch;">This browser can&rsquo;t hand a file to a web page, so there is no automatic version here &mdash; Chrome and Edge can. Save a project file before you close the tab.</p>
+        </sc-if>
+
+        <h4 style="margin: 18px 0 7px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">This apartment only</h4>
+        <p style="font-size: 12px; color: #61666A; margin: 0 0 10px; max-width: 60ch;">One unit&rsquo;s layout, for trying a second arrangement of the same room or handing it to someone else.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+          <button type="button" onClick="{{ onSaveFile }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="color:#393E41;border-color:#949A9E">Save layout</button>
+          <button type="button" onClick="{{ onPickFile }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="color:#393E41;border-color:#949A9E">Load layout</button>
+          <button type="button" onClick="{{ onUndo }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="color:#393E41;border-color:#949A9E">Undo</button>
+        </div>
+        <input type="file" accept="application/json,.json" ref="{{ fileRef }}" onChange="{{ onLoadFile }}" style="display: none;">
+        <input type="file" accept="application/json,.json" ref="{{ projectRef }}" onChange="{{ onLoadProject }}" style="display: none;">
+      </div>
+    </sc-if>
+
+    <!-- ── Fit ── -->
+    <sc-if value="{{ isFit }}" hint-placeholder-val="{{ false }}">
+      <div role="tabpanel" style="flex: 1; overflow: hidden auto; padding: 14px; min-height: 0;">
+        <sc-for list="{{ problems }}" as="p" hint-placeholder-count="0">
+          <div style="background: rgba(246,247,235,0.9); border: 1px solid #C0341F; color: #C0341F; border-radius: 7px; padding: 5px 9px; margin-bottom: 8px; font-size: 12.5px;">{{ p.t }}</div>
+        </sc-for>
+        <sc-for list="{{ fitSections }}" as="sec" hint-placeholder-count="4">
+          <div style="margin-bottom: 18px;">
+            <h3 style="margin: 0 0 7px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">{{ sec.title }}</h3>
+            <sc-if value="{{ sec.empty }}" hint-placeholder-val="{{ false }}">
+              <div style="color: #949A9E; font-size: 12.5px; padding: 2px 0;">{{ sec.empty }}</div>
+            </sc-if>
+            <sc-for list="{{ sec.rows }}" as="r" hint-placeholder-count="3">
+              <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 4px 9px; align-items: baseline; font-size: 12.5px; padding: 5px 0; border-bottom: 1px solid #EBECDD;">
+                <span>{{ r.label }}</span>
+                <span style="font-family: Menlo, ui-monospace, monospace; font-size: 11.5px; font-variant-numeric: tabular-nums; color: #61666A;">{{ r.val }}</span>
+                <span style="font-family: Menlo, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.04em; color: {{ r.color }};">{{ r.state }}</span>
+                <small style="grid-column: 1 / -1; color: #949A9E; font-size: 11px; margin-top: -2px;">{{ r.note }}</small>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+
+        <h3 style="margin: 0 0 7px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">Area</h3>
+        <sc-for list="{{ areaRows }}" as="r" hint-placeholder-count="5">
+          <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 4px 9px; align-items: baseline; font-size: 12.5px; padding: 5px 0; border-bottom: 1px solid #EBECDD; font-weight: {{ r.weight }};">
+            <span>{{ r.label }}</span>
+            <span style="font-family: Menlo, ui-monospace, monospace; font-size: 11.5px; color: #61666A;">{{ r.size }}</span>
+            <span style="font-family: Menlo, ui-monospace, monospace; font-size: 11.5px; color: #61666A;">{{ r.sf }}</span>
+          </div>
+        </sc-for>
+        <small style="display: block; color: #949A9E; font-size: 11px; margin-top: 8px;">{{ footnote }}</small>
+      </div>
+    </sc-if>
+
+    <!-- ── Dimensions ── -->
+    <sc-if value="{{ isCfg }}" hint-placeholder-val="{{ false }}">
+      <div role="tabpanel" style="flex: 1; overflow: hidden auto; padding: 14px; min-height: 0;">
+        <sc-for list="{{ cfgGroups }}" as="grp" hint-placeholder-count="3">
+          <div style="margin-bottom: 4px;">
+            <h3 style="margin: 18px 0 7px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">{{ grp.title }}</h3>
+            <sc-if value="{{ grp.hasNote }}" hint-placeholder-val="{{ true }}">
+              <p style="font-size: 12px; color: #61666A; margin: 0 0 10px; max-width: 60ch;">{{ grp.note }}</p>
+            </sc-if>
+            <div style="display: grid; grid-template-columns: 1fr 76px; gap: 5px 8px; align-items: center; margin-bottom: 6px;">
+              <sc-for list="{{ grp.rows }}" as="row" hint-placeholder-count="8">
+                <label style="font-size: 12.5px; color: #61666A;">{{ row.label }}</label>
+                <input type="number" step="0.25" min="1" value="{{ row.value }}" onChange="{{ row.onChange }}" style="font-family: Menlo, ui-monospace, monospace; font-size: 12px; text-align: right; padding: 4px 6px; width: 100%; background: #EBECDD; color: #393E41; border: 1px solid #DCDDCB; border-radius: 5px;">
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+
+        <h3 style="margin: 18px 0 7px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">Derived — do not edit</h3>
+        <p style="font-size: 12px; color: #61666A; margin: 0 0 10px; max-width: 60ch;">These follow from the numbers above by the tiling identities. They are shown so you can see what a change did.</p>
+        <div style="display: grid; grid-template-columns: 1fr 76px; gap: 5px 8px; align-items: center; margin-bottom: 6px;">
+          <sc-for list="{{ derived }}" as="row" hint-placeholder-count="9">
+            <label title="{{ row.formula }}" style="font-size: 12.5px; color: #61666A;">{{ row.label }}</label>
+            <input readonly value="{{ row.value }}" style="font-family: Menlo, ui-monospace, monospace; font-size: 12px; text-align: right; padding: 4px 6px; width: 100%; background: transparent; color: #949A9E; border: 1px solid transparent; border-radius: 5px;">
+          </sc-for>
+        </div>
+
+        <h3 style="margin: 18px 0 7px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">Constants</h3>
+        <p style="font-size: 12px; color: #61666A; margin: 0 0 10px; max-width: 60ch;">{{ constants }}</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+          <button type="button" onClick="{{ onReset }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="color:#393E41;border-color:#949A9E">{{ resetLabel }}</button>
+        </div>
+
+        <h3 style="margin: 18px 0 7px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">Export</h3>
+        <p style="font-size: 12px; color: #61666A; margin: 0 0 10px; max-width: 60ch;">Geometry is generated from the numbers above — change a dimension and export again, the mesh follows. Both formats are metres, Y-up, north at &minus;Z, split into named objects. OBJ needs both files side by side for colour; glTF is self-contained.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+          <button type="button" onClick="{{ onExpOBJ }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="color:#393E41;border-color:#949A9E">{{ objLabel }}</button>
+          <button type="button" onClick="{{ onExpGLTF }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="color:#393E41;border-color:#949A9E">{{ gltfLabel }}</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ── inspector ── -->
+    <div style="border-top: 1px solid #DCDDCB; background: #EBECDD; padding: 12px 14px; flex: none;">
+      <sc-if value="{{ sel }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <b style="font-size: 13.5px; font-weight: 600;">{{ sel.name }}</b>
+            <span style="width: 10px; height: 10px; border-radius: 2px; background: #E94F37; flex: none;"></span>
+          </div>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; flex-direction: column; gap: 1px;">
+              <span style="font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">Width</span>
+              <span style="font-family: Menlo, ui-monospace, monospace; font-size: 12px; font-variant-numeric: tabular-nums;">{{ sel.w }}</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 1px;">
+              <span style="font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">Depth</span>
+              <span style="font-family: Menlo, ui-monospace, monospace; font-size: 12px; font-variant-numeric: tabular-nums;">{{ sel.d }}</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 1px;">
+              <span style="font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">Height</span>
+              <span style="font-family: Menlo, ui-monospace, monospace; font-size: 12px; font-variant-numeric: tabular-nums;">{{ sel.h }}</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 1px;">
+              <span style="font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">Angle</span>
+              <span style="font-family: Menlo, ui-monospace, monospace; font-size: 12px; font-variant-numeric: tabular-nums;">{{ sel.rot }}°</span>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noSel }}" hint-placeholder-val="{{ true }}">
+        <div style="color: #949A9E; font-size: 12.5px; padding: 2px 0;">{{ emptyHint }}</div>
+      </sc-if>
+    </div>
+
+    <div style="border-top: 1px solid #DCDDCB; background: #F6F7EB; padding: 6px 14px; flex: none; display: flex; justify-content: flex-end;">
+      <span style="font-family: Futura, 'Century Gothic', sans-serif; letter-spacing: 0.06em; font-size: 10px; font-weight: 500; color: #949A9E; opacity: {{ statusOpacity }};">{{ status }}</span>
+    </div>
+  </aside>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;units&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;feet &amp; inches&quot;,&quot;metres&quot;],&quot;default&quot;:&quot;feet &amp; inches&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;},&quot;startWallMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;cut&quot;,&quot;full&quot;],&quot;default&quot;:&quot;cut&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;},&quot;startView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;iso&quot;,&quot;top&quot;,&quot;plan&quot;],&quot;default&quot;:&quot;iso&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;}}">
+const FILTERS = [
+  ['fix', 'Fixtures'], ['dim', 'Dimensions'], ['lab', 'Room labels'],
+  ['grid', 'Foot grid'], ['clr', 'Clearance envelopes'],
+];
+
+class Component extends DCLogic {
+  canvasRef = React.createRef();
+  fileRef = React.createRef();
+  projectRef = React.createRef();
+  filtersRef = React.createRef();
+  headRef = React.createRef();
+  titleRef = React.createRef();
+  nameRef = React.createRef();
+  tagRef = React.createRef();
+  menuRef = React.createRef();
+  aptRef = React.createRef();
+  planRef = React.createRef();
+  photoRef = React.createRef();
+  state = {
+    tab: 'add', wall: 'cut', ortho: false, hand: 'mirror', showArea: true,
+    /* The shortlist. An entry with a `unit` has a plan behind it in
+       unit-model.js and selecting it swaps the model; the rest carry the plan
+       and photos they were uploaded with, waiting to be modelled. Uploads are
+       real Files held for this session — they are not written to disk, so a
+       reload starts the shortlist over. */
+    apartments: [
+      { id: 1, unit: 'goldridge', name: 'Goldridge Apartments', plan: 'A-101.pdf', photos: 4 },
+      { id: 2, unit: 'hazel', name: 'Hazel Ranch', plan: 'hazel-ranch-floorplan.avif', photos: 7 },
+    ],
+    activeApt: 1, aptOpen: false, aptPos: { top: '58px', left: '14px' },
+    addOpen: false, aptDraft: { name: '', plan: null, photos: [] }, confirmApt: null,
+    flags: { fix: true, dim: true, lab: true, grid: false, clr: false },
+    status: 'Saved', fresh: false, tick: 0, ready: false, filtersOpen: false, camTick: 0, menuPos: { top: '58px', right: '14px' },
+    area: null, draft: {}, copyLabel: 'Copy list', objLabel: 'Export .obj + .mtl',
+    projectLabel: 'Save project\u2026',
+    gltfLabel: 'Export .gltf',
+  };
+
+  componentDidMount() {
+    const boot = () => {
+      if (!window.UnitModel || !this.canvasRef.current) { this._t = setTimeout(boot, 40); return; }
+      const p = this.props;
+      this.api = window.UnitModel.create(this.canvasRef.current, {
+        units: p.units === 'metres' ? 'm' : 'ft',
+        wallMode: p.startWallMode === 'full' ? 'full' : 'cut',
+        view: p.startView === 'top' ? 'top' : 'iso',
+        ortho: p.startView === 'plan',
+        theme: {
+          '--ink': '#393E41', '--ink-2': '#61666A', '--ink-3': '#949A9E',
+          '--panel': '#F6F7EB', '--accent': '#3F88C5', '--sel': '#E94F37',
+          '--warn': '#C0341F', '--ok': '#44BBA4',
+        },
+        onChange: () => this.setState(s => ({ tick: s.tick + 1 })),
+        /* the model drops out of Plan on its own when the camera leaves
+           overhead — the switch has to follow, or it lies about the view */
+        onProjection: v => this.setState({ ortho: v }),
+        onView: () => {
+          if (this._raf) return;
+          this._raf = requestAnimationFrame(() => {
+            this._raf = 0;
+            this.setState(s => ({ camTick: s.camTick + 1 }));
+          });
+        },
+        onStatus: msg => {
+          this.setState({ status: msg, fresh: true });
+          clearTimeout(this._msg);
+          this._msg = setTimeout(() => this.setState({ status: 'Saved', fresh: false }), 2200);
+        },
+      });
+      this.setState({
+        ready: true,
+        wall: p.startWallMode === 'full' ? 'full' : 'cut',
+        ortho: p.startView === 'plan',
+        theme: {
+          '--ink': '#393E41', '--ink-2': '#61666A', '--ink-3': '#949A9E',
+          '--panel': '#F6F7EB', '--accent': '#3F88C5', '--sel': '#E94F37',
+          '--warn': '#C0341F', '--ok': '#44BBA4',
+        },
+        hand: this.api.mirrored() ? 'mirror' : 'plan',
+        area: this.api.area(),
+        /* the model restores whichever plan was last open, so the shortlist
+           has to follow it rather than assume the first row */
+        activeApt: (this.state.apartments.find(a => a.unit === this.api.plan().id)
+                    || this.state.apartments[0]).id,
+      });
+    };
+    boot();
+    this._away = e => {
+      const S = this.state;
+      /* a click on the confirm sheet is not a click away from the menu behind it */
+      if (S.confirmApt) return;
+      if (S.filtersOpen) {
+        const el = this.filtersRef.current, mn = this.menuRef.current;
+        const inside = (mn && mn.contains(e.target)) || (el && el.contains(e.target));
+        if (!inside) this.setState({ filtersOpen: false });
+      }
+      if (S.aptOpen) {
+        const nm = this.nameRef.current, ap = this.aptRef.current;
+        const inside = (ap && ap.contains(e.target)) || (nm && nm.contains(e.target));
+        if (!inside) this.setState({ aptOpen: false });
+      }
+    };
+    this._esc = e => {
+      if (e.key !== 'Escape') return;
+      /* innermost first: confirm sheet, then the add modal, then the menus */
+      if (this.state.confirmApt) { this.setState({ confirmApt: null }); return; }
+      if (this.state.addOpen) { this.setState({ addOpen: false }); return; }
+      if (this.state.aptOpen) this.setState({ aptOpen: false });
+      if (this.state.filtersOpen) this.setState({ filtersOpen: false });
+    };
+    window.addEventListener('pointerdown', this._away, true);
+    window.addEventListener('keydown', this._esc);
+    this.fitBar();
+    if (this.headRef.current) {
+      this._bar = new ResizeObserver(() => this.fitBar());
+      this._bar.observe(this.headRef.current);
+    }
+  }
+  note(msg) {
+    this.setState({ status: msg, fresh: true });
+    clearTimeout(this._msg);
+    this._msg = setTimeout(() => this.setState({ fresh: false }), 2600);
+  }
+
+  /* Anything that restores a project reselects an apartment underneath us,
+     so the shortlist, the handing switch and the area tag all have to be
+     re-read. Three different entry points need this; none should do it by
+     hand and get a different subset right. */
+  afterRestore(msg) {
+    const p = this.api.plan();
+    this.setState(st => ({
+      area: this.api.area(),
+      hand: this.api.mirrored() ? 'mirror' : 'plan',
+      draft: {}, ortho: false,
+      tick: st.tick + 1,
+      activeApt: (st.apartments.find(a => a.unit === p.id) || st.apartments[0]).id,
+    }));
+    if (msg) this.note(msg);
+  }
+
+  /* Switch the shortlist AND the model together — the two can never be set
+     independently, or the rail names one apartment while the canvas draws
+     another. An entry with no plan behind it leaves the model alone and only
+     changes the status line. Handing is per plan, so it is re-read here: one
+     apartment is the mirror of its sheet and the other is not. */
+  selectApt(a) {
+    if (!a) return;
+    this.setState({ activeApt: a.id });
+    if (!a.unit || !this.api) return;
+    if (!this.api.selectPlan(a.unit)) return;      // already on it
+    const p = this.api.plan();
+    this.setState({
+      area: this.api.area(),
+      hand: this.api.mirrored() ? 'mirror' : 'plan',
+      draft: {}, ortho: false,
+    });
+    this.note(`${p.name} — ${p.tag}`);
+  }
+  fitBar() {
+    const h = this.headRef.current, name = this.nameRef.current, tag = this.tagRef.current;
+    if (!h || !name) return;
+    if (tag) this._tagW = tag.scrollWidth;      // cached, so hiding it can't shrink the need
+    if (!this._tagW) return;
+    const GAP = 8, PAD = 24, INNER = 9;
+    const kids = [...h.children];
+    let used = name.offsetWidth;
+    for (const k of kids) {
+      if (k === this.titleRef.current) continue;
+      used += k.dataset.spacer ? 4 : k.offsetWidth;   // the spacer only ever owes its min
+    }
+    const need = PAD + used + GAP * Math.max(0, kids.length - 1) + INNER + this._tagW;
+    const show = need <= h.clientWidth;
+    if (show !== this.state.showArea) this.setState({ showArea: show });
+  }
+  componentDidUpdate(prev) {
+    this.fitBar();
+    if (!this.api) return;
+    if (prev.units !== this.props.units) {
+      this.api.setUnits(this.props.units === 'metres' ? 'm' : 'ft');
+      this.setState({ area: this.api.area() });
+    }
+  }
+  componentWillUnmount() {
+    clearTimeout(this._t); clearTimeout(this._msg);
+    window.removeEventListener('pointerdown', this._away, true);
+    window.removeEventListener('keydown', this._esc);
+    if (this._bar) this._bar.disconnect();
+    if (this.api) this.api.destroy();
+  }
+
+  stagePoint(e) {
+    const c = this.canvasRef.current;
+    if (!c) return null;
+    const r = c.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  bump(extra) { this.setState(s => ({ tick: s.tick + 1, ...(extra || {}) })); }
+  flash(key, label, back) {
+    this.setState({ [key]: label });
+    setTimeout(() => this.setState({ [key]: back }), 1400);
+  }
+  setCfg(k, raw) {
+    const v = parseFloat(raw);
+    this.setState(s => ({ draft: { ...s.draft, [k]: raw } }));
+    if (isFinite(v) && v > 0) { this.api.setConfig(k, v); this.setState({ area: this.api.area() }); }
+  }
+
+  cfgRows(list) {
+    const S = this.state;
+    return list.map(r => ({
+      k: r.k, label: r.label,
+      value: S.draft[r.k] !== undefined ? S.draft[r.k] : r.value,
+      onChange: e => this.setCfg(r.k, e.target.value),
+    }));
+  }
+
+  renderVals() {
+    const S = this.state, api = this.api;
+    const ACC = '#3F88C5', INK = '#393E41', INK2 = '#61666A', INK3 = '#949A9E';
+    const on = { bg: ACC, fg: '#FFFFFF' }, off = { bg: 'transparent', fg: INK2 };
+    const tOn = { bg: ACC, fg: '#FFFFFF', bd: ACC }, tOff = { bg: '#EBECDD', fg: INK2, bd: ACC };
+    const tab = k => S.tab === k ? { fg: INK, bd: ACC } : { fg: INK3, bd: 'transparent' };
+    const STATE_COLOR = { pass: '#44BBA4', tight: '#E94F37', fail: '#C0341F' };
+
+    const base = {
+      canvasRef: this.canvasRef, fileRef: this.fileRef, projectRef: this.projectRef,
+      status: S.status, statusOpacity: S.fresh ? 1 : 0.4,
+      copyLabel: S.copyLabel, objLabel: S.objLabel, gltfLabel: S.gltfLabel,
+      wallCut: S.wall === 'cut' ? on : off, wallFull: S.wall === 'full' ? on : off,
+      persp: S.ortho ? off : on, ortho: S.ortho ? on : off,
+      handPlan: S.hand === 'plan' ? on : off, handMirror: S.hand === 'mirror' ? on : off,
+      filtersOpen: S.filtersOpen,
+      filtersRef: this.filtersRef,
+      headRef: this.headRef, titleRef: this.titleRef, nameRef: this.nameRef, tagRef: this.tagRef,
+      menuRef: this.menuRef,
+      showArea: S.showArea,
+      activeName: (S.apartments.find(a => a.id === S.activeApt) || S.apartments[0]).name,
+      apartments: S.apartments.map(a => ({
+        name: a.name,
+        meta: a.unit ? `${a.photos} photos · modelled` : `${a.photos} photos · ${a.plan}`,
+        mark: a.id === S.activeApt ? '●' : '',
+        bg: a.id === S.activeApt ? '#E2EDF7' : 'transparent',
+        /* the last one on the shortlist keeps its × hidden — there is no
+           sensible state with nothing selected */
+        delShow: S.apartments.length > 1 ? 'block' : 'none',
+        delTitle: `Delete ${a.name}`,
+        onDel: e => { e.stopPropagation(); this.setState({ confirmApt: { id: a.id, name: a.name } }); },
+        on: () => {
+          this.setState({ aptOpen: false });
+          /* an entry with no plan behind it would otherwise show the previous
+             apartment's rooms under a new name, so the model is left alone */
+          if (!a.unit) { this.note(`${a.name} — plan uploaded, not modelled yet`); return; }
+          this.selectApt(a);
+        },
+      })),
+      aptOpen: S.aptOpen, aptRef: this.aptRef,
+      aptTop: S.aptPos.top, aptLeft: S.aptPos.left,
+      onApts: () => {
+        const el = this.nameRef.current, r = el && el.getBoundingClientRect();
+        this.setState(s => ({
+          aptOpen: !s.aptOpen, filtersOpen: false,
+          aptPos: r ? { top: (r.bottom + 8) + 'px', left: Math.max(8, r.left - 7) + 'px' } : s.aptPos,
+        }));
+      },
+      confirmOpen: !!S.confirmApt,
+      confirmBody: S.confirmApt
+        ? `${S.confirmApt.name} leaves the shortlist, and its plan and photos go with it. This cannot be undone.`
+        : '',
+      onConfirmCancel: () => this.setState({ confirmApt: null }),
+      onConfirmDelete: () => {
+        const t = this.state.confirmApt;
+        if (!t) return;
+        const left = S.apartments.filter(a => a.id !== t.id);
+        this.setState({ apartments: left, confirmApt: null });
+        /* deleting the one you were looking at falls back to the top of the
+           list — and the model has to follow, or the rail names one apartment
+           while the canvas draws another */
+        if (S.activeApt === t.id) this.selectApt(left[0]);
+        this.note(`${t.name} deleted`);
+      },
+      addOpen: S.addOpen, planRef: this.planRef, photoRef: this.photoRef,
+      draftName: S.aptDraft.name,
+      onAddOpen: () => this.setState({ addOpen: true, aptOpen: false, aptDraft: { name: '', plan: null, photos: [] } }),
+      onAddClose: () => this.setState({ addOpen: false }),
+      onAddBackdrop: () => this.setState({ addOpen: false }),
+      stop: e => e.stopPropagation(),
+      onDraftName: e => { const v = e.target.value; this.setState(s => ({ aptDraft: { ...s.aptDraft, name: v } })); },
+      onPickPlan: () => this.planRef.current && this.planRef.current.click(),
+      onPlanFile: e => {
+        const fl = e.target.files && e.target.files[0];
+        if (fl) this.setState(s => ({ aptDraft: { ...s.aptDraft, plan: fl } }));
+        e.target.value = '';
+      },
+      onPickPhotos: () => this.photoRef.current && this.photoRef.current.click(),
+      onPhotoFiles: e => {
+        const add = [...(e.target.files || [])].map(fl => ({ name: fl.name, url: URL.createObjectURL(fl) }));
+        if (add.length) this.setState(s => ({ aptDraft: { ...s.aptDraft, photos: [...s.aptDraft.photos, ...add] } }));
+        e.target.value = '';
+      },
+      planLabel: S.aptDraft.plan ? S.aptDraft.plan.name : 'Required — no file yet',
+      planColor: S.aptDraft.plan ? '#44BBA4' : '#949A9E',
+      photoLabel: S.aptDraft.photos.length >= 3
+        ? `${S.aptDraft.photos.length} photos`
+        : `${S.aptDraft.photos.length} of 3 minimum`,
+      photoColor: S.aptDraft.photos.length >= 3 ? '#44BBA4' : '#949A9E',
+      thumbs: S.aptDraft.photos.map(p => ({ bg: `url("${p.url}")` })),
+      hasThumbs: S.aptDraft.photos.length > 0,
+      addDisabled: !(S.aptDraft.name.trim() && S.aptDraft.plan && S.aptDraft.photos.length >= 3),
+      addBtn: (S.aptDraft.name.trim() && S.aptDraft.plan && S.aptDraft.photos.length >= 3)
+        ? { bg: '#3F88C5', fg: '#FFFFFF', bd: '#3F88C5', cursor: 'pointer' }
+        : { bg: '#EBECDD', fg: '#949A9E', bd: '#DCDDCB', cursor: 'not-allowed' },
+      onAddSubmit: () => {
+        const d = this.state.aptDraft;
+        if (!(d.name.trim() && d.plan && d.photos.length >= 3)) return;
+        const id = Math.max(0, ...this.state.apartments.map(a => a.id)) + 1;
+        this.setState(s => ({
+          apartments: [...s.apartments, { id, name: d.name.trim(), plan: d.plan.name, photos: d.photos.length }],
+          addOpen: false, aptDraft: { name: '', plan: null, photos: [] },
+        }));
+        this.note(`${d.name.trim()} added — plan and ${d.photos.length} photos`);
+      },
+      filterBtn: S.filtersOpen ? tOn : tOff,
+      filterCount: `${FILTERS.filter(x => S.flags[x[0]]).length}/${FILTERS.length}`,
+      filters: FILTERS.map(([k, label]) => ({
+        label, mark: S.flags[k] ? '✓' : '',
+        boxBg: S.flags[k] ? ACC : 'transparent',
+        boxBd: S.flags[k] ? ACC : '#C3C6B4',
+        on: () => this.toggle(k),
+      })),
+      menuTop: S.menuPos.top, menuRight: S.menuPos.right,
+      onFilters: () => {
+        const el = this.filtersRef.current, r = el && el.getBoundingClientRect();
+        const rail = el && el.closest('header');
+        const bottom = Math.max(r ? r.bottom : 0, rail ? rail.getBoundingClientRect().bottom : 0);
+        this.setState(s => ({
+          filtersOpen: !s.filtersOpen,
+          menuPos: r ? {
+            top: (bottom + 6) + 'px',
+            right: Math.max(8, Math.min(innerWidth - 216, innerWidth - r.right)) + 'px',
+          } : s.menuPos,
+        }));
+      },
+      tabAdd: tab('add'), tabList: tab('list'), tabFit: tab('fit'), tabCfg: tab('cfg'),
+      isAdd: S.tab === 'add', isList: S.tab === 'list', isFit: S.tab === 'fit', isCfg: S.tab === 'cfg',
+      onTabAdd: () => this.setState({ tab: 'add' }), onTabList: () => this.setState({ tab: 'list' }),
+      onTabFit: () => this.setState({ tab: 'fit' }), onTabCfg: () => this.setState({ tab: 'cfg' }),
+      onWallCut: () => { api.setWallMode('cut'); this.setState({ wall: 'cut' }); },
+      onWallFull: () => { api.setWallMode('full'); this.setState({ wall: 'full' }); },
+      onPersp: () => { api.setOrtho(false); this.setState({ ortho: false }); },
+      onOrtho: () => { api.setOrtho(true); this.setState({ ortho: true }); },
+      onViewIso: () => api.goView('iso'), onViewTop: () => api.goView('top'),
+      onHandPlan: () => { api.setMirror(false); this.setState({ hand: 'plan' }); },
+      onHandMirror: () => { api.setMirror(true); this.setState({ hand: 'mirror' }); },
+      areaTag: S.area ? `${S.area.net.toFixed(0)} sq ft net · ${S.area.gross.toFixed(0)} gross` : '650 sq ft',
+    };
+    if (!api) return { ...base, catalog: [], placed: [], problems: [], fitSections: [], areaRows: [],
+      cfgGroups: [], constants: '', resetLabel: 'Reset', derived: [], sel: null, noSel: true, warning: false,
+      storeBad: false, storeLabel: '', storeWhere: '', projectRows: [], projectLabel: 'Save project\u2026',
+      linkOn: false, linkLost: false, linkOff: false, linkNone: false, linkName: 'iso-home.json',
+      onLink: () => {}, onOpenLinked: () => {}, onReconnect: () => {}, onUnlink: () => {},
+      onSaveProject: () => {}, onPickProject: () => {}, onLoadProject: () => {}, projectRef: this.projectRef,
+      hasItems: false, noItems: true, anyPlaced: false, placedCount: '', clearTitle: '', emptyHint: 'Loading the model…' };
+
+    const sel = api.selection();
+    const cfg = api.configSections();
+    const out = {
+      ...base,
+      sel, noSel: !sel, warning: !!(sel && sel.blocked),
+      ...(() => {
+        const p = sel && api.selectionScreen();
+        if (!p) return { showTools: false, toolsLeft: '0px', toolsTop: '0px' };
+        return {
+          showTools: true,
+          toolsLeft: Math.round(Math.min(Math.max(p.x, 62), p.w - 62)) + 'px',
+          toolsTop: Math.round(Math.min(Math.max(p.y - 14, 46), p.h - 12)) + 'px',
+        };
+      })(),
+      emptyHint: api.count() ? 'Click a piece to select it.' : 'Nothing placed yet — drag one in from the Add tab.',
+      onRot90: () => api.rotate(90),
+      onDup: () => sel && api.duplicate(sel.id), onDel: () => sel && api.remove(sel.id),
+      onUndo: () => api.undo(),
+      onSaveFile: () => api.saveLayoutFile(),
+      onPickFile: () => this.fileRef.current && this.fileRef.current.click(),
+      onLoadFile: e => {
+        const f = e.target.files && e.target.files[0];
+        if (f) api.loadLayoutFile(f);
+        e.target.value = '';
+      },
+      /* the whole shortlist in one document — the copy that outlives the
+         browser it was arranged in */
+      onSaveProject: () => {
+        api.saveProjectFile();
+        this.flash('projectLabel', 'Saved', 'Save project\u2026');
+      },
+      onPickProject: () => this.projectRef.current && this.projectRef.current.click(),
+      onLoadProject: e => {
+        const f = e.target.files && e.target.files[0];
+        if (f) api.loadProjectFile(f);
+        e.target.value = '';
+        setTimeout(() => this.afterRestore(), 60);
+      },
+      /* linking hands the app a real file; every one of these can fail
+         (no support, a preview frame refusing the picker, the user
+         cancelling) so each reports back rather than assuming */
+      onLink: async () => {
+        const r = await api.linkFile();
+        if (!r.ok && !r.cancelled) this.note(r.reason);
+        this.setState(st => ({ tick: st.tick + 1 }));
+      },
+      onOpenLinked: async () => {
+        const r = await api.openLinked();
+        if (!r.ok) { if (!r.cancelled) this.note(r.reason); this.setState(st => ({ tick: st.tick + 1 })); return; }
+        this.afterRestore(`Opened ${r.name} — ${r.restored.join(', ')}`);
+      },
+      onReconnect: async () => {
+        const r = await api.reconnectLink();
+        if (!r.ok) { this.note(r.reason); this.setState(st => ({ tick: st.tick + 1 })); return; }
+        this.afterRestore(`Reconnected to ${r.name}`);
+      },
+      onUnlink: async () => { await api.unlinkFile(); this.note('Disconnected — autosave stays in this browser'); },
+      projectLabel: S.projectLabel,
+      ...(() => {
+        const lk = api.link();
+        return {
+          linkOn:   lk.state === 'linked',
+          linkLost: lk.state === 'reconnect',
+          linkOff:  lk.supported && lk.state === 'off',
+          linkNone: !lk.supported,
+          linkName: lk.name || 'iso-home.json',
+        };
+      })(),
+      ...(() => {
+        const pr = api.project();
+        return {
+          storeBad: !pr.storage,
+          storeLabel: pr.storage ? 'Autosaving to' : 'Storage blocked',
+          storeWhere: pr.where,
+          projectRows: pr.apartments.map(a => ({
+            name: a.active ? a.name + ' \u00b7 open' : a.name,
+            pieces: a.pieces === 1 ? '1 piece' : a.pieces + ' pieces',
+          })),
+        };
+      })(),
+      onClearAll: () => api.clearAll(),
+      onCopyList: async () => {
+        try { await navigator.clipboard.writeText(api.listText()); this.flash('copyLabel', 'Copied', 'Copy list'); }
+        catch (err) { this.flash('copyLabel', 'Copy failed', 'Copy list'); }
+      },
+      onReset: () => { api.resetConfig(); this.setState({ draft: {}, area: api.area() }); },
+      onExpOBJ: () => { api.exportOBJ(); this.flash('objLabel', 'Exported', 'Export .obj + .mtl'); },
+      onExpGLTF: () => { api.exportGLTF(); this.flash('gltfLabel', 'Exported', 'Export .gltf'); },
+      cfgGroups: cfg.map(g => ({ title: g.title, note: g.note, hasNote: !!g.note, rows: this.cfgRows(g.rows) })),
+      constants: api.constants(), resetLabel: 'Reset to ' + api.resetLabel(),
+      derived: api.derived(),
+      catalog: api.catalog().map(g => ({
+        g: g.g, items: g.items.map(it => ({
+          ...it,
+          onDragStart: e => {
+            this._dragKey = it.k;
+            e.dataTransfer.effectAllowed = 'copy';
+            e.dataTransfer.setData('text/plain', it.k);
+          },
+        })),
+      })),
+      onDragEnd: () => { this._dragKey = null; api.clearGhost(); },
+      onStageLeave: () => api.clearGhost(),
+      onStageOver: e => {
+        if (!this._dragKey) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        const p = this.stagePoint(e);
+        if (p) api.ghostAt(this._dragKey, p.x, p.y);
+      },
+      onStageDrop: e => {
+        e.preventDefault();
+        const k = this._dragKey || e.dataTransfer.getData('text/plain');
+        const p = this.stagePoint(e);
+        this._dragKey = null;
+        if (k && p) api.dropAt(k, p.x, p.y);
+      },
+      anyPlaced: api.count() > 0,
+      placedCount: String(api.count()),
+      clearTitle: api.count() === 1 ? 'Remove the 1 placed piece' : `Remove all ${api.count()} placed pieces`,
+      placed: [], problems: [], fitSections: [], areaRows: [], hasItems: false, noItems: true,
+    };
+
+    if (S.tab === 'list') {
+      const rows = api.placed();
+      out.placed = rows.map(r => ({
+        ...r,
+        color: r.selected ? '#E94F37' : INK,
+        flagColor: r.flag === 'blocked' ? '#C0341F' : '#E94F37',
+        on: () => api.select(r.id),
+        onRemove: e => { e.stopPropagation(); api.remove(r.id); },
+      }));
+      out.hasItems = rows.length > 0;
+      out.noItems = rows.length === 0;
+      const c = api.coverage();
+      out.coverage = `${c.sf} sf · ${c.pct}%`;
+    }
+    if (S.tab === 'fit') {
+      if (this._fitTick !== S.tick || !this._fit) { this._fit = api.fit(); this._fitTick = S.tick; }
+      const f = this._fit;
+      out.problems = f.problems.map(t => ({ t }));
+      out.fitSections = f.sections.map(s => ({
+        title: s.title, empty: s.empty || '',
+        rows: s.rows.map(r => ({ ...r, color: STATE_COLOR[r.state], state: r.state.toUpperCase() })),
+      }));
+      out.areaRows = f.areaRows.map(r => ({ ...r, weight: r.strong ? 600 : 400 }));
+      out.footnote = f.footnote;
+    }
+    return out;
+  }
+
+  toggle(k) {
+    const v = !this.state.flags[k];
+    this.api.setFlag(k, v);
+    this.setState(s => ({ flags: { ...s.flags, [k]: v } }));
+  }
+}
+
+</script>
+</body>
+</html>
