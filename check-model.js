@@ -96,6 +96,7 @@ if (typeof globalThis.performance === 'undefined') globalThis.performance = { no
 var canvas = makeEl('canvas');
 canvas.parentNode = makeEl('div');
 var api = window.UnitModel.create(canvas, {});
+globalThis.__checkApi = api;   // for check-exports.js, which requires this file
 
 var want = typeof PLAN !== 'undefined' ? [PLAN] : api.plans().map(function (p) { return p.id; });
 

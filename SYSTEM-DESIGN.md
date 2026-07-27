@@ -2,6 +2,8 @@
 
 *Target: a hosted, single-user web tool. Anyone can open the URL and model an apartment; their work persists locally (browser storage + project files), with no accounts and no server-side state.*
 
+> **Status (2026-07-26).** Live at https://macatmanifold.github.io/IsoHome/ from https://github.com/MacatManifold/IsoHome. Done: repo + CI (Node smoke test and OBJ/MTL/glTF export validation gate every push), GitHub Pages hosting, all runtime dependencies vendored locally (React, ReactDOM, Babel, fonts — zero third-party requests). Scaffolded: Sentry error reporting (awaiting DSN in `vendor/error-reporting.js`). Correction to §2: in-browser Babel only loads for the runtime's `x-import` JSX feature, which no page uses — so the Babel startup-cost concern was moot, and the §3.1 UI port is reclassified as optional (see §5 Phase 3).
+
 ---
 
 ## 1. What exists today
