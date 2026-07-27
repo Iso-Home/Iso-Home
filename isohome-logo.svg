@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 720 640">
+  <title>IsoHome logo</title>
+  <defs>
+    <path id="wR" d="M0 0l19.05 -11v24l-19.05 11z"/>
+    <path id="wL" d="M0 0l-19.05 -11v24l19.05 11z"/>
+  </defs>
+
+  <!-- street -->
+  <polygon points="358,600 704,400 358,200 12,400" fill="#54555d"/>
+  <g stroke="#f0c04a" stroke-width="4" stroke-dasharray="16 12" fill="none" opacity="0.9">
+    <path d="M358 575L661 400"/>
+    <path d="M358 575L55 400"/>
+  </g>
+
+  <!-- sidewalk -->
+  <polygon points="358,550 618,400 358,250 98,400" fill="#cfcfd4" stroke="#9b9ba1" stroke-width="3"/>
+  <g stroke="#b5b5bc" stroke-width="2">
+    <path d="M372.8 483.5L423 512.5"/>
+    <path d="M502.7 408.5L552.9 437.5"/>
+    <path d="M343.3 483.5L293.1 512.5"/>
+    <path d="M213.4 408.5L163.2 437.5"/>
+  </g>
+
+  <!-- painted sidewalk text -->
+  <g font-family="'Arial Black', Arial, Helvetica, sans-serif" font-weight="900" font-size="44" fill="#33608c" text-anchor="middle" letter-spacing="1">
+    <text x="0" y="14" transform="matrix(0.866 0.5 -0.866 0.5 253 460)">Iso</text>
+    <text x="0" y="14" transform="matrix(0.866 -0.5 0.866 0.5 463 460)">Home</text>
+  </g>
+
+  <!-- grass lot -->
+  <polygon points="358,492 517,400 358,308 199,400" fill="#78b657" stroke="#5f9a43" stroke-width="2"/>
+
+  <!-- bushes -->
+  <circle cx="313" cy="454" r="7" fill="#4e8f3a"/>
+  <circle cx="311" cy="452" r="4.5" fill="#63a94b"/>
+  <circle cx="463" cy="419" r="8" fill="#4e8f3a"/>
+  <circle cx="460.5" cy="416.5" r="5.5" fill="#63a94b"/>
+  <circle cx="403" cy="454" r="7" fill="#4e8f3a"/>
+  <circle cx="401" cy="452" r="4.5" fill="#63a94b"/>
+
+  <!-- building walls -->
+  <polygon points="358,472 482.7,400 482.7,150 358,222" fill="#ecc98e"/>
+  <polygon points="358,472 233.3,400 233.3,150 358,222" fill="#c49a5f"/>
+  <path d="M358 472L358 222" stroke="#a37e4a" stroke-width="2"/>
+
+  <!-- windows: sunlit right face -->
+  <g fill="#8fd0ef" stroke="#3c6e9e" stroke-width="1">
+    <use xlink:href="#wR" x="370.1" y="231"/>
+    <use xlink:href="#wR" x="370.1" y="265"/>
+    <use xlink:href="#wR" x="370.1" y="299"/>
+    <use xlink:href="#wR" x="370.1" y="333"/>
+    <use xlink:href="#wR" x="370.1" y="367"/>
+    <use xlink:href="#wR" x="397.8" y="215"/>
+    <use xlink:href="#wR" x="397.8" y="249"/>
+    <use xlink:href="#wR" x="397.8" y="283"/>
+    <use xlink:href="#wR" x="397.8" y="317"/>
+    <use xlink:href="#wR" x="397.8" y="351"/>
+    <use xlink:href="#wR" x="425.6" y="199"/>
+    <use xlink:href="#wR" x="425.6" y="233"/>
+    <use xlink:href="#wR" x="425.6" y="267"/>
+    <use xlink:href="#wR" x="425.6" y="301"/>
+    <use xlink:href="#wR" x="425.6" y="335"/>
+    <use xlink:href="#wR" x="425.6" y="369"/>
+    <use xlink:href="#wR" x="453.3" y="183"/>
+    <use xlink:href="#wR" x="453.3" y="217"/>
+    <use xlink:href="#wR" x="453.3" y="285"/>
+    <use xlink:href="#wR" x="453.3" y="319"/>
+    <use xlink:href="#wR" x="453.3" y="353"/>
+  </g>
+  <use xlink:href="#wR" x="453.3" y="251" fill="#ffd97a" stroke="#c9a23f" stroke-width="1"/>
+
+  <!-- windows: shaded left face -->
+  <g fill="#5ea4c8" stroke="#2f5878" stroke-width="1">
+    <use xlink:href="#wL" x="345.9" y="231"/>
+    <use xlink:href="#wL" x="345.9" y="265"/>
+    <use xlink:href="#wL" x="345.9" y="299"/>
+    <use xlink:href="#wL" x="345.9" y="333"/>
+    <use xlink:href="#wL" x="345.9" y="367"/>
+    <use xlink:href="#wL" x="345.9" y="401"/>
+    <use xlink:href="#wL" x="318.2" y="215"/>
+    <use xlink:href="#wL" x="318.2" y="249"/>
+    <use xlink:href="#wL" x="318.2" y="283"/>
+    <use xlink:href="#wL" x="318.2" y="317"/>
+    <use xlink:href="#wL" x="318.2" y="351"/>
+    <use xlink:href="#wL" x="318.2" y="385"/>
+    <use xlink:href="#wL" x="290.4" y="199"/>
+    <use xlink:href="#wL" x="290.4" y="233"/>
+    <use xlink:href="#wL" x="290.4" y="267"/>
+    <use xlink:href="#wL" x="290.4" y="301"/>
+    <use xlink:href="#wL" x="290.4" y="335"/>
+    <use xlink:href="#wL" x="290.4" y="369"/>
+    <use xlink:href="#wL" x="262.7" y="183"/>
+    <use xlink:href="#wL" x="262.7" y="217"/>
+    <use xlink:href="#wL" x="262.7" y="251"/>
+    <use xlink:href="#wL" x="262.7" y="285"/>
+    <use xlink:href="#wL" x="262.7" y="319"/>
+    <use xlink:href="#wL" x="262.7" y="353"/>
+  </g>
+
+  <!-- entrance -->
+  <path d="M371.9 464l24.2 -14v-44l-24.2 14z" fill="#5f4630" stroke="#46331f" stroke-width="1"/>
+  <polygon points="371.9,418 396.1,404 407.4,410.5 383.2,424.5" fill="#d64545"/>
+  <polygon points="383.2,424.5 407.4,410.5 407.4,415.5 383.2,429.5" fill="#b23636"/>
+
+  <!-- parapet + roof -->
+  <polygon points="358,222 482.7,150 482.7,142 358,214" fill="#d9b87b"/>
+  <polygon points="358,222 233.3,150 233.3,142 358,214" fill="#a9834f"/>
+  <polygon points="358,214 482.7,142 358,70 233.3,142" fill="#aab0b8" stroke="#8f959d" stroke-width="1"/>
+  <polygon points="358,204 465.4,142 358,80 250.6,142" fill="#8f959d"/>
+
+  <!-- water tower -->
+  <path d="M390 128l-4 14M420 128l4 14" stroke="#7a4a33" stroke-width="3"/>
+  <ellipse cx="405" cy="130" rx="20" ry="8" fill="#9c4a33"/>
+  <rect x="385" y="103" width="40" height="27" fill="#b0553a"/>
+  <ellipse cx="405" cy="103" rx="20" ry="8" fill="#c96b4d"/>
+  <path d="M383 104C390 86 420 86 427 104" fill="#7f3b2a"/>
+
+  <!-- AC unit -->
+  <polygon points="300,150 317.3,140 334.6,150 317.3,160" fill="#c4c9cf"/>
+  <polygon points="334.6,150 334.6,162 317.3,172 317.3,160" fill="#9aa0a8"/>
+  <polygon points="300,150 300,162 317.3,172 317.3,160" fill="#83898f"/>
+</svg>

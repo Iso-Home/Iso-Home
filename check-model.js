@@ -1,9 +1,11 @@
 /*  check-model.js — run unit-model.js headless and report every plan.
  *
- *  Runs on JavaScriptCore, which ships with macOS — no install, no Node:
+ *  Runs on JavaScriptCore (ships with macOS) or Node (what CI uses):
  *
- *      ./check-model.sh                       # every plan
+ *      ./check-model.sh                       # every plan, via jsc
  *      jsc -e 'PLAN="hazel"' check-model.js   # just one
+ *      node check-model.js                    # every plan, via Node
+ *      PLAN=hazel node check-model.js         # just one
  *
  *  This is the cheap smoke test for the whole file: jsc executes the same
  *  script the page does, so any ReferenceError is fatal here even when the
@@ -13,6 +15,15 @@
  *  initGL() bails when getContext('webgl') returns null, so the 2D path runs
  *  and no GL stub is needed.
  */
+/* jsc provides print() and readFile() natively; under Node they are shimmed
+ * here. Paths resolve relative to this script so CI can run from any cwd. */
+if (typeof print === 'undefined' || typeof readFile === 'undefined') {
+  var _fs = require('fs'), _path = require('path');
+  globalThis.print = function (s) { console.log(s === undefined ? '' : s); };
+  globalThis.readFile = function (f) { return _fs.readFileSync(_path.join(__dirname, f), 'utf8'); };
+  if (process.env.PLAN) globalThis.PLAN = process.env.PLAN;
+}
+
 var noop = function () {};
 var NOOP_RE = /^(add|remove)EventListener$|^(setAttribute|append|appendChild|insertBefore|removeChild|click|focus|blur|remove|setPointerCapture|releasePointerCapture|preventDefault|scrollIntoView)$/;
 
@@ -153,3 +164,8 @@ var junk = api.restoreProject({ format: 'nope' });
 print('  rejects a non-project file: ' + (junk.ok === false ? 'OK — "' + junk.reason + '"' : '*** ACCEPTED ***'));
 
 print(bad ? '\n  *** ' + bad + ' APARTMENT(S) LOST WORK ***' : '\n  round trip clean.');
+
+/* Exit nonzero on real failures so CI can gate on this script. Fit-report
+ * "fail" rows are design findings, not bugs — they do not fail the build.
+ * What does: a lost apartment in the round trip, or a junk file accepted. */
+if (bad > 0 || junk.ok !== false) throw new Error('check-model: FAILED');
