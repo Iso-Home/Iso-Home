@@ -1,0 +1,8 @@
+/* Self-hosted fonts for the Floor Plan sheet (latin subset, via @fontsource).
+ * Replaces the Google Fonts stylesheet so the page has no third-party deps. */
+@font-face { font-family: 'Archivo'; font-style: normal; font-weight: 400; font-display: swap; src: url('./fonts/archivo-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Archivo'; font-style: normal; font-weight: 500; font-display: swap; src: url('./fonts/archivo-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Archivo'; font-style: normal; font-weight: 600; font-display: swap; src: url('./fonts/archivo-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Archivo'; font-style: normal; font-weight: 700; font-display: swap; src: url('./fonts/archivo-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('./fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('./fonts/ibm-plex-mono-latin-500-normal.woff2') format('woff2'); }
