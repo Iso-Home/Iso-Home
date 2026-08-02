@@ -651,7 +651,7 @@ function fixturesA101(C, G) {
 /* ── registry entry ─────────────────────────────────────────────── */
 PLANS.push({
   id: 'goldridge', rev: 'v4', legacy: true,
-  name: 'Goldridge Apartments', tag: '~562 sq ft', sub: 'Field-measured · second storey',
+  name: 'Goldridge Apartments', tag: '650 sq ft', sub: 'Field-measured · second storey',
   PLAN: PLAN_A101, derive: deriveA101, problems: problemsA101,
   shell: shellA101, fixtures: fixturesA101,
   handed: true,
@@ -672,6 +672,9 @@ PLANS.push({
     ['Coat closet', `${ftin(C.storW)} × ${ftin(G.coatD)}`, G.rooms.coat],
   ],
   envelope: C => `${ftin(C.W)} × ${ftin(C.D)}`,
+  /* the closet stack at the east end of the bump-out is enclosed but sits
+     outside the envelope, so gross building area has to pick it up */
+  bumpGross: (C, G) => (C.storW + C.wallInt + C.wallExt) * (C.balcD + C.wallExt),
   pad: C => Math.max(2, C.balcD + C.wallExt + 1),
   seal: (C, G, stamp, PAD) => {
     const e = C.wallExt, bo = C.balcD + e;
@@ -762,7 +765,7 @@ PLANS.push({
       ]},
     ];
   },
-  areaNote: (C, G, A) => `Taped in the unit on 2026-08-01: ${A.gross.toFixed(0)} sf gross, ${A.net.toFixed(0)} sf net of partitions. The listing says 650 sf and sheet A-101 draws about 658 — neither reconciles with the tape, and the gap is not the usual gross-versus-net slop, it is roughly ${(650 - A.gross).toFixed(0)} sf. Almost all of it is width: the sheet draws the unit 3′-10″ wider than it measures, which it spends on a dining room of 12′-6″ × 11′-6″ where the tape finds 8′-6″ × 7′-11″. Depth the sheet gets right to within 3″. Treat 650 as a listing figure, not a measurement, and size furniture off these numbers.`,
+  areaNote: (C, G, A) => `The listed 650 sf is a GROSS BUILDING figure and the tape agrees with it: measured to the outside face of the exterior walls, and picking up the closet stack in the bump-out, this plan is ${A.grossExt.toFixed(0)} sf — within ${Math.abs(650 - A.grossExt).toFixed(0)} sf of the listing. Nothing is missing. Inside those walls you get ${A.gross.toFixed(0)} sf of interior and ${A.net.toFixed(0)} sf of actual floor, because ${(A.grossExt - A.net).toFixed(0)} sf of the 650 is wall: ${(2*(C.W + C.D)*C.wallExt + 4*C.wallExt*C.wallExt).toFixed(0)} sf of 8″ exterior envelope, ${(A.gross - A.net).toFixed(0)} sf of partitions, and the bump-out closets. A small unit has a lot of perimeter for its area, so that ratio is normal — but furniture goes in the ${A.net.toFixed(0)} sf, which is the number to shop against.`,
   resetLabel: 'the tape survey',
   constants: `Near-certain in US residential. Interior partitions 4″, exterior 8″. Interior doors 32″×80″, entry and bedroom 36″×80″, bypass/bifold 30″. Counters 36″ high × 25″ deep, uppers at 54″.`,
   fields: [
@@ -1207,6 +1210,8 @@ PLANS.push({
     ['Bedroom closet', `${ftin(C.cl2W)} × ${ftin(G.hallD)}`, G.rooms.closet],
   ],
   envelope: (C, G) => `${ftin(C.W)} × ${ftin(C.D)} less the ${ftin(C.livX)} × ${ftin(G.dy)} notch`,
+  /* storage closet off the patio — enclosed, outside the envelope */
+  bumpGross: (C, G) => (C.storW + C.wallInt + C.wallExt) * (C.patD + C.wallExt),
   pad: C => Math.max(2, C.patD + 2*C.wallExt + 1),
   seal: (C, G, stamp, PAD) => {
     const e = C.wallExt, bo = C.patD + 2*e;
@@ -1281,7 +1286,7 @@ PLANS.push({
       ]},
     ];
   },
-  areaNote: (C, G, A) => `The listing states 616 sf. The drawing carries no dimension strings, so the scale came from the drawing itself — wall centrelines fit at ~35.4 px/ft, which independently makes the bedroom the 10′-1″ its own callout claims and the walls 7.6″ / 4.2″. At that scale the drawn envelope is ${A.gross.toFixed(0)} sf gross and ${A.net.toFixed(0)} sf net of partitions, so 616 sits between the two, which is how a listing quotes it. The room callouts are usable-area figures, not wall-to-wall: the living room's “9′-3″ × 12′-7″” is the north part of a band this model draws ${ftin(G.partX - C.livX)} × ${ftin(G.ky)}.`,
+  areaNote: (C, G, A) => `The listing states 616 sf. The drawing carries no dimension strings, so the scale came from the drawing itself — wall centrelines fit at ~35.4 px/ft, which independently makes the bedroom the 10′-1″ its own callout claims and the walls 7.6″ / 4.2″. At that scale the drawn envelope is ${A.gross.toFixed(0)} sf gross and ${A.net.toFixed(0)} sf net of partitions, so 616 sits between the two — this listing quotes INTERIOR, unlike Goldridge's 650, which is a gross-building figure. The two shortlist entries are not measured on the same basis; compare them on net floor, not on their headline numbers. The room callouts are usable-area figures, not wall-to-wall: the living room's “9′-3″ × 12′-7″” is the north part of a band this model draws ${ftin(G.partX - C.livX)} × ${ftin(G.ky)}.`,
   resetLabel: 'the leasing plan',
   constants: `Scaled off the drawing at 35.6 px/ft: exterior walls 7.6″, partitions 4.2″ —
      modelled at 8″ and 4″. Doors scale to 22–31″ on the sheet, which is narrower than any
@@ -2284,8 +2289,22 @@ function areaReport() {
      read `blockers`, and the fixture-less build above would hide the casework */
   buildShell();
   const a = r => (r[2]-r[0])*(r[3]-r[1]);
+  const gi = gross/(S*S);
+  /* Gross BUILDING area — measured to the outside face of the exterior walls,
+     which is what a listing quotes and what neither of the two numbers above
+     is. For any rectilinear outline the exterior area is the interior plus
+     perimeter × thickness plus one corner square per net convex corner; and a
+     staircase-convex plan (a rectangle, or an L) has the perimeter of its own
+     bounding box and exactly four net convex corners, so this holds for both
+     plans without special-casing the L. Anything enclosed OUTSIDE the envelope
+     — the closet stack in the bump-out — is the plan's to add.
+
+     This is the number that reconciles Goldridge to its listed 650 sf. Do not
+     conclude a listing is wrong by comparing it against interior clear. */
+  const grossExt = gi + 2*(C.W + C.D)*C.wallExt + 4*C.wallExt*C.wallExt
+                      + (U.bumpGross ? U.bumpGross(C, G) : 0);
   return {
-    gross: gross/(S*S), net: free/(S*S),
+    gross: gi, net: free/(S*S), grossExt,
     extras: U.areaExtras(C, G).map(([n, dims, r]) => [n, dims, a(r)]),
   };
 }
@@ -3073,6 +3092,7 @@ function fitData() {
   const areaRows = roomList().filter(([n]) => sch.includes(n)).map(([n, r]) => ({
     label: n, size: `${ftin(r[2]-r[0])} × ${ftin(r[3]-r[1])}`,
     sf: Math.round((r[2]-r[0]) * (r[3]-r[1])) + ' sf', strong: false }));
+  areaRows.push({ label: 'Gross building', size: 'to the outside of the exterior walls', sf: A.grossExt.toFixed(0) + ' sf', strong: false });
   areaRows.push({ label: 'Gross interior', size: U.envelope(C, G), sf: A.gross.toFixed(0) + ' sf', strong: false });
   areaRows.push({ label: 'Net floor', size: `less ${(A.gross - A.net).toFixed(0)} sf partitions`, sf: A.net.toFixed(0) + ' sf', strong: true });
   for (const [n, dims, sf] of A.extras)
