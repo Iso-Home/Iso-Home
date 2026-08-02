@@ -353,7 +353,15 @@ function RMP(x0,x1, y0,y1, zA,zB, t, m) {
 /* ══ shell ═════════════════════════════════════════════════════════ */
 let showFixtures = true, wallMode = 'cut', EXPORTING = false;
 const CUT = 4.5;
-const wallTop = () => wallMode === 'full' ? C.ceiling : Math.min(CUT, C.ceiling - 0.5);
+/* The lower clamp is not cosmetic. Cut walls stop half a foot below the
+   ceiling, so a ceiling of 0.5′ or less put the cut AT or BELOW the floor;
+   wallX/wallY bail on `z1 <= z0` before pushing anything, so every wall
+   vanished — and with them every entry in `blockers` and `wallRects`. Net
+   floor then equalled gross, the Fit tab found no problems, and furniture
+   placed straight through partitions that were no longer there to object.
+   Below a 1′ ceiling this keeps a 6″ stub, which is nonsense either way but
+   is nonsense that still counts as a wall. */
+const wallTop = () => wallMode === 'full' ? C.ceiling : Math.max(0.5, Math.min(CUT, C.ceiling - 0.5));
 
 /* Shared scaffolding. The walls themselves come from the active plan —
    buildShell() only clears the buffers and fixes the emission order, so
@@ -2551,21 +2559,39 @@ function duplicate(id){
 const KP = opts.keyPrefix || 'apt.ui.';
 const layoutKey = () => KP + U.id + '.layout';        // never versioned
 const cfgKey    = () => KP + U.id + '.config.' + U.rev;   // bumped with CONFIG's shape
+/* "this apartment has had its one migration". ONCE has to be recorded
+   somewhere: an empty layout cannot tell "never migrated" apart from
+   "deliberately emptied", and reading it as the former is how Clear All
+   used to come undone on the next reload. */
+const adoptKey  = () => KP + U.id + '.legacyAdopted';
 const LEGACY_KEYS = ['apt.parametric.unit14.v3', 'apt.parametric.unit14.v2',
                      'apt.parametric.unit14.v1', 'apt.parametric.a101.v1',
                      'apt.parametric.v2'];
 let saveT = null, lastSaved = 0;
+/* what this tab last wrote to the layout key, and the other tab's record when
+   the two have diverged — see "another tab" below */
+let savedSig = '', extConflict = null;
+/* the ARRANGEMENT only — id, piece, position, rotation. Not JSON.stringify
+   (items): restack() hangs a derived `z` off each piece as it draws, so a
+   whole-object signature drifts on its own and would read as unsaved work. */
+const itemSig = () => JSON.stringify(items.map(i => [i.id, i.k, i.x, i.y, i.rot]));
 function save() {
-  clearTimeout(saveT);
+  clearTimeout(saveT); saveT = null;
+  /* An unresolved cross-tab conflict suspends BOTH writes. Whichever way it
+     goes, one side's work disappears, and that is the user's call, not ours —
+     until they make it, the other tab's saved record stands. */
+  if (extConflict) return;
   /* capture the keys now: a plan switch between scheduling and firing must
      not write this apartment's furniture into the other one's key */
   const lk = layoutKey(), ck = cfgKey();
   const snap = JSON.stringify({ items, cam }), cfg = JSON.stringify({ C });
+  const sig = itemSig();
   saveT = setTimeout(() => {
     try {
       localStorage.setItem(lk, snap);
       localStorage.setItem(ck, cfg);
       localStorage.setItem(KP + 'plan', U.id);
+      savedSig = sig;                // only once it is actually down
       lastSaved = Date.now(); showSaved();
     } catch(e){ showSaved('Could not save — storage is blocked'); }
   }, 250);
@@ -2576,11 +2602,52 @@ function save() {
 function flushSave() {
   if (!saveT) return;
   clearTimeout(saveT); saveT = null;
+  if (extConflict) return;                       // as above: not ours to settle
   try {
     localStorage.setItem(layoutKey(), JSON.stringify({ items, cam }));
     localStorage.setItem(cfgKey(),    JSON.stringify({ C }));
+    savedSig = itemSig();
   } catch(e){}
 }
+
+/* ══ another tab on the same origin ════════════════════════════════
+   localStorage is shared by every tab on the origin, and save() writes the
+   whole items array with no version check — so two tabs on one apartment are
+   last-writer-wins. The losing tab did not even have to edit anything:
+   glide() saves when a camera move finishes, so clicking Iso or Plan in a
+   tab left open from this morning was enough to stamp its stale furniture
+   over an afternoon's arranging in the other one. Nothing listened for the
+   storage event, so nothing noticed and nothing said so.
+
+   What can be done about an incoming write depends on whether THIS tab has
+   anything to lose:
+     · nothing unsaved — the incoming record is strictly newer and this tab's
+       is exactly what it replaced, so adopt it. Items only: the other tab
+       does not get to move this one's camera. This is the common case, and
+       it is the whole of the reported bug.
+     · unsaved changes here — adopting throws away what is on screen,
+       overwriting throws away the other tab's. Neither is ours to pick, so
+       hold both, stop writing, and let the interface offer the choice
+       (api.conflict / api.resolveConflict). Nothing is destroyed meanwhile.
+   ══════════════════════════════════════════════════════════════════ */
+function onStorage(e) {
+  if (!U || !e || e.key !== layoutKey()) return;   // another apartment, or the config
+  let d = null;
+  try { d = JSON.parse(e.newValue || 'null'); } catch (err) { return; }
+  if (!d || !Array.isArray(d.items)) return;
+  if (itemSig() === savedSig) {                    // clean: nothing here to lose
+    applyLayout({ items: d.items });
+    savedSig = itemSig(); selId = null; extConflict = null;
+    sync(); draw();
+    showSaved('Updated — this apartment was changed in another tab');
+    return;
+  }
+  extConflict = { items: d.items };
+  clearTimeout(saveT); saveT = null;               // the pending write must not land on it
+  sync();
+  showSaved('Changed in another tab — nothing is saved here until you choose');
+}
+addEventListener('storage', onStorage);
 /* items only ever come back through here, so a hand-edited or stale file
    cannot inject a key the catalog does not have */
 function applyLayout(d) {
@@ -2592,6 +2659,34 @@ function applyLayout(d) {
   }
   if (d.cam) Object.assign(cam, d.cam, { fov:36 });
 }
+/* A saved config is merged over the plan's defaults KEY BY KEY, and a value
+   that is not the right shape is dropped rather than adopted — the same
+   quarantine applyLayout() gives the furniture.
+
+   setConfig() has always guarded what the pane types (isFinite && > 0), but
+   nothing guarded what came back off disk, and a config only has to be wrong
+   once to be permanent: C is written to localStorage, so it reloads. A string
+   "30" made configSections() throw on +C[k].toFixed(4) — every render, not
+   just the Dimensions pane, so the error boundary ate the whole component and
+   took the Reset button with it. A negative W reached areaReport()'s
+   new Uint8Array(nx*ny) and threw RangeError during mount, so the app never
+   became ready. Neither had any in-app way back.
+
+   Walking PLAN's keys, rather than filtering the saved object, is what keeps
+   mirror/solidGuard/openRiser/neighbour working — they are booleans, and a
+   blanket "must be a positive number" rule would silently drop all four. Keys
+   PLAN does not define are dropped: this build cannot draw them. */
+function mergeConfig(plan, saved) {
+  const out = { ...plan };
+  if (!saved || typeof saved !== 'object') return out;
+  for (const k of Object.keys(plan)) {
+    if (!Object.prototype.hasOwnProperty.call(saved, k)) continue;
+    if (typeof plan[k] === 'boolean') { out[k] = !!saved[k]; continue; }
+    const v = Number(saved[k]);
+    if (isFinite(v) && v > 0) out[k] = v;      // anything else keeps the default
+  }
+  return out;
+}
 /* Point the whole model at a plan: adopt its config and its saved layout.
    This is the only place U, C and G are assigned. */
 function selectPlan(id) {
@@ -2599,21 +2694,45 @@ function selectPlan(id) {
   U = planById(id);
   C = { ...U.PLAN };
   items = []; selId = null; nextId = 1; undoStack = []; GHOSTITEM = null;
+  /* a cross-tab conflict is about one apartment's key; leaving this apartment
+     leaves it behind, unresolved and unwritten */
+  extConflict = null;
   try {
     const cfg = JSON.parse(localStorage.getItem(cfgKey()) || 'null');
-    if (cfg && cfg.C) C = { ...U.PLAN, ...cfg.C };
+    if (cfg && cfg.C) C = mergeConfig(U.PLAN, cfg.C);
   } catch(e){}
   G = U.derive(C);
   Object.assign(cam, VIEWS().iso);            // reframe for this envelope
   try {
     let lay = JSON.parse(localStorage.getItem(layoutKey()) || 'null');
-    if ((!lay || !(lay.items || []).length) && U.legacy)
+    /* ONCE, and once means once. The rescue used to be gated on the current
+       layout being empty, which re-fired it on every boot until something was
+       placed: Clear All, close the tab, and the old arrangement was back with
+       an empty undo stack (selectPlan resets it) and no way to refuse. The
+       marker below is what "once" actually needs, and it is written whether or
+       not anything was found, so an origin with no legacy data stops scanning
+       five keys on every plan select. The legacy keys themselves are left
+       alone — deletion is irreversible, and they are the only copy of
+       pre-migration work if an adoption ever goes wrong. */
+    const migrate = U.legacy && !localStorage.getItem(adoptKey());
+    let rescued = false;
+    if (migrate && (!lay || !(lay.items || []).length))
       for (const k of LEGACY_KEYS) {                 // rescue an orphan, once
         const d = JSON.parse(localStorage.getItem(k) || 'null');
-        if (d && (d.items || []).length) { lay = { items: d.items }; break; }
+        if (d && (d.items || []).length) { lay = { items: d.items }; rescued = true; break; }
       }
     if (lay) applyLayout(lay);
+    if (migrate) {
+      /* write the adopted pieces out BEFORE marking, and after applyLayout so
+         what lands is the filtered list: the marker means "already migrated",
+         so a crash in between would otherwise strand them behind it */
+      if (rescued) localStorage.setItem(layoutKey(), JSON.stringify({ items, cam }));
+      localStorage.setItem(adoptKey(), '1');
+    }
   } catch(e){}
+  /* this tab is now exactly what its key holds — the baseline another tab's
+     write gets compared against */
+  savedSig = itemSig();
 }
 
 /* ══ undo ══════════════════════════════════════════════════════════
@@ -2688,6 +2807,18 @@ function snapshot() {
 function restoreProject(doc) {
   if (!doc || doc.format !== PROJECT_FORMAT || !doc.plans)
     return { ok: false, reason: 'That file is not an Iso Home project.' };
+  /* DISCARD any pending autosave before writing a line of this file.
+     It holds the keys AND the items from before the restore, and the usual
+     safety net does not apply here: selectPlan flushes on a plan switch, but
+     `U = null` below is deliberately set so that flush is skipped. The stale
+     timer then fired ~250ms later and wrote the PRE-restore furniture over
+     the apartment that had just been restored — and since planState() reads
+     non-live plans straight out of localStorage, the next linked-file write
+     copied that loss into the user's file. Discard rather than flush: the
+     rule here is that THE FILE WINS, so pre-restore items must not be
+     written out at all. fileT is deliberately left armed — the linked file
+     should still re-converge on the restored state. */
+  clearTimeout(saveT); saveT = null;
   const restored = [], skipped = [];
   for (const id of Object.keys(doc.plans)) {
     const p = PLANS.find(x => x.id === id), st = doc.plans[id];
@@ -2696,6 +2827,11 @@ function restoreProject(doc) {
       localStorage.setItem(KP + id + '.layout', JSON.stringify({
         items: Array.isArray(st.items) ? st.items : [], cam: st.cam || undefined }));
       if (st.C) localStorage.setItem(KP + id + '.config.' + p.rev, JSON.stringify({ C: st.C }));
+      /* the file is the record, so it settles the migration too: without this,
+         restoring a project that says an apartment is empty would hand it back
+         with the pre-migration furniture in it — furniture that is in no file
+         anywhere — the first time that apartment was selected */
+      localStorage.setItem(KP + id + '.legacyAdopted', '1');
       restored.push(p.name);
     } catch (e) { skipped.push(id); }
   }
@@ -2768,6 +2904,10 @@ const handleDrop = ()  => idbStore('readwrite', st => st.delete('project'));
 
 async function writeLinked() {
   if (!fileHandle) return;
+  /* an unresolved cross-tab conflict suspends this too, and it matters more
+     here: pagehide calls writeLinked() directly, so closing the stale tab
+     would otherwise push its version into the durable file */
+  if (extConflict) return;
   if (writingFile) { writeAgain = true; return; }
   writingFile = true;
   try {
@@ -2932,7 +3072,10 @@ function loadLayoutDoc(d) {
     return;
   }
   pushUndo();
-  if (d.C) { C = { ...U.PLAN, ...d.C }; G = U.derive(C); }
+  /* through mergeConfig for the same reason applyLayout exists: a layout file
+     is as hand-editable as a project file, and an out-of-shape dimension in
+     one used to reach C intact and break every render from then on */
+  if (d.C) { C = mergeConfig(U.PLAN, d.C); G = U.derive(C); }
   applyLayout(d);
   selId = null; save(); sync(); draw();
   showSaved(`Loaded ${items.length} piece${items.length === 1 ? '' : 's'}`);
@@ -2993,6 +3136,14 @@ const grade = (v, min, good) => v >= (good == null ? min : good) ? 'pass' : v >=
 function fitData() {
   buildShell(); restack(); for (const it of items) buildItem(it);
   const probs = U.problems(C, G);
+  /* Not plan-specific, so it lives here rather than in either problems():
+     a ceiling nobody can stand under is wrong on any plan, and nothing
+     reported it. The pane's min="1" is a browser hint that a typed value
+     walks straight past, and setConfig only asks for a positive number —
+     so 0.5 (a plausible slip for 8′-6″) went in silently and, before the
+     clamp in wallTop(), took every wall with it. */
+  if (C.ceiling < 6 + 8/12)
+    probs.push(`Ceiling is ${ftin(C.ceiling)} — under the 6′-8″ minimum for a habitable room.`);
   const routes = widestRoutes(), gap = sofaCoffeeGap();
   const R = (label, val, state, note) => ({ label, val, state, note: note || '' });
   /* the plan-specific half: what the dimensions alone already decide,
@@ -3175,6 +3326,25 @@ const API = {
   /* the linked file — adopt one and the app saves into it by itself */
   linkFile, openLinked, reconnectLink, unlinkFile,
   link: () => ({ supported: FSA, state: linkState, name: fileName }),
+  /* Another tab wrote this apartment while this one had changes of its own.
+     Saving is suspended until the user says which version wins — null when
+     there is nothing to settle, which is almost always. */
+  conflict: () => extConflict
+    ? { plan: U.id, name: U.name, theirs: extConflict.items.length, mine: items.length }
+    : null,
+  resolveConflict(keep) {
+    if (!extConflict) return false;
+    const theirs = extConflict.items;
+    extConflict = null;                            // writes resume either way
+    if (keep === 'theirs') {
+      pushUndo();                                  // this tab's work goes, so keep a way back
+      applyLayout({ items: theirs }); selId = null;
+    }
+    save(); sync(); draw();
+    showSaved(keep === 'theirs' ? 'Loaded the other tab’s version'
+                                : 'Kept this tab’s version — the other tab is now behind');
+    return true;
+  },
   /* what the save state currently holds, for the UI to show back */
   project: () => ({
     storage: storageOK(),
@@ -3190,6 +3360,7 @@ const API = {
     flushSave();                                   // never tear down over unsaved work
     try { ro.disconnect(); } catch (e) {}
     try { removeEventListener('pagehide', onHide); } catch (e) {}
+    try { removeEventListener('storage', onStorage); } catch (e) {}
     if (glcv) glcv.remove();
   },
 };
