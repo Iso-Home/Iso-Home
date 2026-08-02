@@ -351,7 +351,14 @@ function RMP(x0,x1, y0,y1, zA,zB, t, m) {
 }
 
 /* ══ shell ═════════════════════════════════════════════════════════ */
-let showFixtures = true, wallMode = 'cut', EXPORTING = false;
+/* Walls stand at their real height by default. This used to open in 'cut',
+   which slices them at CUT so you look down into the rooms — but a 4′-6″ stub
+   reads as a model of an apartment rather than as the apartment, and the
+   doll's-house culling below already keeps the near walls out of the way in
+   'full' by ghosting whichever ones are between the eye and the plan. Cutaway
+   is still one click away, and areaReport() still forces 'cut' for its raster
+   regardless of what the view is showing. */
+let showFixtures = true, wallMode = 'full', EXPORTING = false;
 const CUT = 4.5;
 const wallTop = () => wallMode === 'full' ? C.ceiling : Math.min(CUT, C.ceiling - 0.5);
 
