@@ -449,7 +449,8 @@
       </sc-if>
     </div>
 
-    <div style="border-top: 1px solid #DCDDCB; background: #F6F7EB; padding: 6px 14px; flex: none; display: flex; justify-content: flex-end;">
+    <div style="border-top: 1px solid #DCDDCB; background: #F6F7EB; padding: 6px 14px; flex: none; display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+      <span style="font-family: Futura, 'Century Gothic', sans-serif; letter-spacing: 0.06em; font-size: 10px; font-weight: 500; color: #B4B7A9;">{{ version }}</span>
       <span style="font-family: Futura, 'Century Gothic', sans-serif; letter-spacing: 0.06em; font-size: 10px; font-weight: 500; color: #949A9E; opacity: {{ statusOpacity }};">{{ status }}</span>
     </div>
   </aside>
@@ -808,6 +809,8 @@ class Component extends DCLogic {
          fires the ResizeObserver, and resize() refits the framing — so the
          plan actually grows into the space instead of sitting small in a
          wider frame. */
+      /* read from the model, never hard-coded here — unit-model.js owns it */
+      version: api ? 'V ' + api.version() : '',
       gridCols: S.panelOpen ? '1fr 330px' : '1fr',
       panelOpen: !!S.panelOpen,
       panelLabel: S.panelOpen ? 'Hide panel' : 'Show panel',
