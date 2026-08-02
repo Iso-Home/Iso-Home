@@ -23,7 +23,7 @@
 <script src="./unit-model.js"></script>
 </helmet>
 
-<div data-screen-label="Unit Model" style="display: grid; grid-template-columns: 1fr 330px; grid-template-rows: auto 1fr; height: 100dvh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', ui-sans-serif, sans-serif; font-size: 14px; line-height: 1.5; color: #393E41; background: #EDEEE0;">
+<div data-screen-label="Unit Model" style="display: grid; grid-template-columns: {{ gridCols }}; grid-template-rows: auto 1fr; height: 100dvh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', ui-sans-serif, sans-serif; font-size: 14px; line-height: 1.5; color: #393E41; background: #EDEEE0;">
 
   <!-- ══ rail ══ -->
   <header ref="{{ headRef }}" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 52px; background: #F6F7EB; border-bottom: 1px solid #DCDDCB; overflow-x: auto;">
@@ -60,6 +60,10 @@
     <div data-spacer="1" style="flex: 1; min-width: 4px;"></div>
 
     <div style="position: sticky; right: 0; flex: none; display: flex; align-items: center; gap: 10px; background: #F6F7EB; padding-left: 10px; box-shadow: -10px 0 10px -6px #F6F7EB;">
+      <button type="button" onClick="{{ onTogglePanel }}" title="{{ panelTitle }}" aria-expanded="{{ panelOpen }}" style="display: flex; align-items: center; gap: 7px; font: inherit; font-size: 12px; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 7px; padding: 6px 9px; cursor: pointer; white-space: nowrap; color: #393E41; flex: none;" style-hover="background:#EBECDD">
+        <span style="font-size: 10px; line-height: 1;">{{ panelChevron }}</span>
+        <span>{{ panelLabel }}</span>
+      </button>
       <div ref="{{ filtersRef }}" style="flex: none;">
       <button type="button" onClick="{{ onFilters }}" style="display: flex; align-items: center; gap: 8px; font: inherit; font-size: 12px; border-radius: 7px; padding: 6px 9px; cursor: pointer; white-space: nowrap; background: {{ filterBtn.bg }}; color: {{ filterBtn.fg }}; border: 1px solid {{ filterBtn.bd }};">
         <span>Filters</span>
@@ -203,6 +207,7 @@
   </div>
 
   <!-- ══ panel ══ -->
+  <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ true }}">
   <aside style="background: #F6F7EB; border-left: 1px solid #DCDDCB; display: flex; flex-direction: column; min-height: 0;">
     <div role="tablist" style="display: flex; border-bottom: 1px solid #DCDDCB; flex: none;">
       <button type="button" role="tab" onClick="{{ onTabAdd }}" style="flex: 1; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; font-weight: 500; padding: 11px 2px; background: transparent; border: 0; border-bottom: 2px solid {{ tabAdd.bd }}; color: {{ tabAdd.fg }}; cursor: pointer;">Add</button>
@@ -448,6 +453,7 @@
       <span style="font-family: Futura, 'Century Gothic', sans-serif; letter-spacing: 0.06em; font-size: 10px; font-weight: 500; color: #949A9E; opacity: {{ statusOpacity }};">{{ status }}</span>
     </div>
   </aside>
+  </sc-if>
 </div>
 
 </x-dc>
@@ -471,7 +477,10 @@ class Component extends DCLogic {
   planRef = React.createRef();
   photoRef = React.createRef();
   state = {
-    tab: 'add', wall: 'cut', ortho: false, hand: 'mirror', showArea: true,
+    tab: 'add', wall: 'full', ortho: false, hand: 'mirror', showArea: true,
+    /* the right-hand panel. Collapsing it hands its 330px to the canvas —
+       the ResizeObserver refits the framing, so the plan grows to use them. */
+    panelOpen: true,
     /* The shortlist. An entry with a `unit` has a plan behind it in
        unit-model.js and selecting it swaps the model; the rest carry the plan
        and photos they were uploaded with, waiting to be modelled. Uploads are
@@ -792,6 +801,20 @@ class Component extends DCLogic {
       onConflictMine:   () => { if (api) api.resolveConflict('mine'); },
       copyLabel: S.copyLabel, objLabel: S.objLabel, gltfLabel: S.gltfLabel,
       wallCut: S.wall === 'cut' ? on : off, wallFull: S.wall === 'full' ? on : off,
+      /* The panel collapses so the model can have the whole window. The grid
+         drops to a single column rather than shrinking the aside to 0px, so
+         nothing inside it can keep a scrollbar or a focus ring alive; the
+         conditional takes the panel out of the tree entirely. Losing the column
+         fires the ResizeObserver, and resize() refits the framing — so the
+         plan actually grows into the space instead of sitting small in a
+         wider frame. */
+      gridCols: S.panelOpen ? '1fr 330px' : '1fr',
+      panelOpen: !!S.panelOpen,
+      panelLabel: S.panelOpen ? 'Hide panel' : 'Show panel',
+      panelChevron: S.panelOpen ? '\u25B6' : '\u25C0',
+      panelTitle: S.panelOpen
+        ? 'Collapse the furniture panel and give the space to the model'
+        : 'Bring the furniture panel back',
       persp: S.ortho ? off : on, ortho: S.ortho ? on : off,
       /* handedness comes from the MODEL, not from S.hand: mirroring now moves
          the furniture with the plan, which makes it an undoable edit, and an
@@ -931,6 +954,7 @@ class Component extends DCLogic {
       isAdd: S.tab === 'add', isList: S.tab === 'list', isFit: S.tab === 'fit', isCfg: S.tab === 'cfg',
       onTabAdd: () => this.setState({ tab: 'add' }), onTabList: () => this.setState({ tab: 'list' }),
       onTabFit: () => this.setState({ tab: 'fit' }), onTabCfg: () => this.setState({ tab: 'cfg' }),
+      onTogglePanel: () => this.setState({ panelOpen: !S.panelOpen }),
       onWallCut: () => { api.setWallMode('cut'); this.setState({ wall: 'cut' }); },
       onWallFull: () => { api.setWallMode('full'); this.setState({ wall: 'full' }); },
       onPersp: () => { api.setOrtho(false); this.setState({ ortho: false }); },
