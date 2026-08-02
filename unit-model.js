@@ -74,8 +74,13 @@ const PLAN_A101 = {
   kitW:    9 + 10/12,  // ▸ kitchen run length          ·  9′-10″
 
   /* ── closets and the north-east bump-out ── */
-  wdW:     2 +  2/12,       //   W/D alcove — NOT MEASURED, set so the
-                            //   vestibule derives to the 8′-9″ hallway Mac taped
+  wdW:     2 +  6/12,       //   W/D alcove — NOT MEASURED. Was 2′-2″, set to make
+                            //   the hallway derive to the taped 8′-9″; the photo
+                            //   survey shows a FULL-SIZE top-load washer in there,
+                            //   which is 27″ and cannot fit 26″. 2′-6″ is the
+                            //   smallest alcove that holds it, and the 4″ it costs
+                            //   the hallway is now visible in the Fit tab rather
+                            //   than hidden in a number chosen to make things agree.
   closW:   6 + 10/12,       // ▸ bedroom reach-in      ·  6′-10″
   closD:   1 + 11/12,       // ▸                       ×  1′-11″
   balcW:  10 +  2.5/12,     // ▸ balcony               · 10′-2½″
@@ -306,6 +311,9 @@ const parseLen = s => {
 /* ══ materials ═════════════════════════════════════════════════════ */
 const M = {
   oak:{c:[198,175,146]}, tile:{c:[216,216,212]}, deck:{c:[158,154,147]},
+  /* read off the 2026-08-01 photo survey of unit 14: light warm carpet in the
+     living room and bedroom, dark grey-brown vinyl plank everywhere else */
+  carpet:{c:[186,178,166]}, vinyl:{c:[96,83,72]},
   wall:{c:[236,231,223],edge:1}, poche:{c:[168,157,142]},
   counter:{c:[58,56,53],edge:1}, cab:{c:[224,217,206],edge:1},
   appl:{c:[176,180,184],edge:1}, porc:{c:[246,246,244],edge:1},
@@ -451,11 +459,17 @@ function shellA101(C, G, h) {
   const { W, D, wallExt: e, wallInt: i, doorH: dh, balcD, storW, bedW, bedD, closW } = C;
   const { rooms: R, balcony: B, op, ky, uy0, uy1, cy, balcX, kx } = G;
 
-  /* floors */
+  /* floors — finishes read off the photo survey, not measured. Carpet in the
+     living room and bedroom, dark vinyl plank through the kitchen, dining,
+     hallway and bath, and a tile pad inside the front door. The carpet/vinyl
+     line in the dining room is eyeballed from a photo taken across the kitchen
+     peninsula, so it is the one edge here worth correcting on sight. */
   GRP = 'floor';
-  FQ(0, 0, W, D, 0, M.oak);
-  FQ(R.bath[0], R.bath[1], R.bath[2], R.bath[3], .03, M.tile);
-  FQ(R.kitchen[0], R.kitchen[1], R.kitchen[2], R.kitchen[3], .03, M.tile);
+  FQ(0, 0, W, D, 0, M.carpet);
+  for (const r of [R.kitchen, R.dining, R.bath, R.vest, R.wd])
+    FQ(r[0], r[1], r[2], r[3], .03, M.vinyl);
+  /* entry tile pad, sized off the door and squared into the room */
+  FQ(W - C.doorEntry, op.entry[0] - C.wallInt, W, op.entry[1] + C.doorEntry, .04, M.tile);
   /* the bump-out: balcony deck, plus the closet stack floor at its east end */
   BX(B[0] - e, B[1], -0.42, B[2], B[3], 0, M.deck, null, floorQuads);
   FQ(W - storW, R.storage[1], W, -e, 0, M.oak);
@@ -721,12 +735,15 @@ PLANS.push({
   rooms: (C, G) => [
     ['Bedroom', G.rooms.bedroom, 1], ['Living', G.rooms.living, 1],
     ['Dining', G.rooms.dining, 1], ['Kitchen', G.rooms.kitchen, 1],
-    ['Bath', G.rooms.bath, 1], ['Vestibule', G.rooms.vest, 0],
+    /* "Hallway", not A-101's "Vestibule" — it is what Mac taped it as, and it
+       matches the two Hallway rows in the Fit tab. Carries its dimensions
+       (the 1) because it is a measured room, not an offcut. */
+    ['Bath', G.rooms.bath, 1], ['Hallway', G.rooms.vest, 1],
     ['W/D', G.rooms.wd, 0], ['Closet', G.rooms.closet, 0],
     ['Coat', G.rooms.coat, 0], ['Storage', G.rooms.storage, 0],
     ['Balcony', G.balcony, 1],
   ],
-  scheduled: ['Living', 'Dining', 'Kitchen', 'Bedroom', 'Bath'],
+  scheduled: ['Living', 'Dining', 'Kitchen', 'Bedroom', 'Bath', 'Hallway'],
   footprint: C => [[0, 0, C.W, C.D]],
   areaExtras: (C, G) => [
     ['Balcony', `${ftin(C.balcW)} × ${ftin(C.balcD)}`, G.balcony],
@@ -808,9 +825,9 @@ PLANS.push({
         R('Hallway depth', `${ftin(G.utilD)} vs ${TAPE.hallD}″ taped`, slop(dHallD),
           `Derives from D − bedD − bathD − 8″, so it collects the error from every reading above it. Out by ${dHallD > 0 ? '+' : ''}${dHallD}″.`),
         R('Hallway length', `${ftin(C.bedW - C.wdW)} vs ${TAPE.hallL}″ taped`, slop(dHallL),
-          `Derives from bedW − wdW. wdW was set to make this land, so this agreeing proves nothing — it is the W/D alcove that is unverified.`),
+          `Derives from bedW − wdW. The photo survey forced wdW up to ${ftin(C.wdW)} to fit the full-size washer, which costs this row ${Math.abs(dHallL)}″ — so either bedW or the hallway reading carries that much slop. It was 0″ only because wdW had been chosen to make it 0″.`),
         R('Bathroom', `${ftin(C.bathW)} × ${ftin(C.bathD)}`, 'tight',
-          `Never measured — but not free either. ${ftin(C.bathW)} is the ONLY width at which the south band spans the same W as the taped bedroom + living room, so it is a prediction, not a guess. Measure it: if it comes back near ${ftin(C.bathW)} that independently confirms W from a disjoint set of rooms. If it comes back very different, the two width rows above go red and W is wrong — or the south band holds something unmeasured, a chase or a linen closet.`),
+          `Never measured — but not free either. ${ftin(C.bathW)} is the ONLY width at which the south band spans the same W as the taped bedroom + living room, so it is a prediction, not a guess. The photo survey backs it up: a standard three-fixture bath with the tub spanning the short wall, which rules out the 9′-4″ bathroom that a 28′-0″ unit would need. It does not pin the number to the inch — a tape here would still be the single best check on W.`),
         R('Balcony clears the bedroom', ftin(G.balcX - C.bedW),
           G.balcX - C.bedW >= 1 ? 'pass' : G.balcX - C.bedW >= 0 ? 'tight' : 'fail',
           `The bump-out has to start east of the bedroom's party wall or the balcony would open off the bedroom. At the taped width it clears by ${ftin(G.balcX - C.bedW)} — it used to clear by 2′-0″, so the storage and coat closets are the next thing the tape will move.`),
@@ -2517,15 +2534,42 @@ function overlapsRect(poly, rect) {
    asked to stop. A piece must sit wholly inside the unit, or wholly on the
    balcony deck — the slider threshold is not a parking space.
    ══════════════════════════════════════════════════════════════════ */
+/* Is an axis-aligned box wholly covered by the union of `rects`?
+   Rect subtraction: start with the box as the only uncovered piece, cut each rect
+   out of whatever is left, and see if anything survives. A footprint is a handful
+   of rects, so this stays trivial — and unlike a corners-only test it is correct
+   for a box that straddles two of them. */
+function coveredBy(box, rects) {
+  let rest = [box];
+  for (const r of rects) {
+    const next = [];
+    for (const b of rest) {
+      if (r[2] <= b[0] || r[0] >= b[2] || r[3] <= b[1] || r[1] >= b[3]) { next.push(b); continue; }
+      if (b[1] < r[1]) next.push([b[0], b[1], b[2], r[1]]);            // strip to the north
+      if (b[3] > r[3]) next.push([b[0], r[3], b[2], b[3]]);            // to the south
+      const y0 = Math.max(b[1], r[1]), y1 = Math.min(b[3], r[3]);
+      if (b[0] < r[0]) next.push([b[0], y0, r[0], y1]);                // to the west
+      if (b[2] > r[2]) next.push([r[2], y0, b[2], y1]);                // to the east
+    }
+    rest = next.filter(b => b[2] - b[0] > 1e-9 && b[3] - b[1] > 1e-9);
+    if (!rest.length) return true;
+  }
+  return !rest.length;
+}
 function inBounds(it) {
-  const [x0,y0,x1,y1] = bboxOf(it);          // defined below; called at runtime
-  if (x0 >= 0 && x1 <= C.W && y0 >= 0 && y1 <= C.D) return true;
+  const box = bboxOf(it);                    // defined below; called at runtime
+  /* Was a plain [0,W] x [0,D] test. That is the BOUNDING BOX, not the floor:
+     hazel is L-shaped and the notch north of its dining bay is outdoors, so a
+     sofa could be placed standing on nothing. Ask the plan's own footprint. */
+  if (coveredBy(box, U.footprint(C, G).map(mRect))) return true;
   /* Was mRect(G.balcony). Only goldridge derives a `balcony`; hazel derives a
      `patio`, so on that plan this destructured undefined and threw the moment
      a piece left the envelope. Nothing had reached it before, because until the
-     Balcony catalog group there was no furniture anyone would put out there. */
-  const [b0,b1,b2,b3] = mRect(U.outdoor(C, G));
-  return x0 >= b0 && x1 <= b2 && y0 >= b1 && y1 <= b3;
+     Balcony catalog group there was no furniture anyone would put out there.
+     Kept as a separate test rather than folded into the footprint above: a
+     piece may sit wholly indoors or wholly on the deck, never straddling the
+     wall between them. */
+  return coveredBy(box, [mRect(U.outdoor(C, G))]);
 }
 function placeable(it) {
   const poly = corners(it);

@@ -938,7 +938,12 @@ class Component extends DCLogic {
       onViewIso: () => api.goView('iso'), onViewTop: () => api.goView('top'),
       onHandPlan: () => { api.setMirror(false); this.setState({ hand: 'plan' }); },
       onHandMirror: () => { api.setMirror(true); this.setState({ hand: 'mirror' }); },
-      areaTag: S.area ? `${S.area.net.toFixed(0)} sq ft net · ${S.area.gross.toFixed(0)} gross` : '650 sq ft',
+      /* "gross" here must mean the same thing as the area table's Gross
+         building — measured to the outside of the exterior walls, the basis a
+         listing quotes. It used to show gross INTERIOR, so the header and the
+         table each called a different number "gross". Net floor leads, because
+         that is the one worth comparing across the shortlist. */
+      areaTag: S.area ? `${S.area.net.toFixed(0)} sq ft net floor · ${S.area.grossExt.toFixed(0)} gross` : '650 sq ft',
     };
     if (!api) return { ...base, catalog: [], placed: [], problems: [], fitSections: [], areaRows: [],
       cfgGroups: [], constants: '', resetLabel: 'Reset', derived: [], sel: null, noSel: true, warning: false,
