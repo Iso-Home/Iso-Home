@@ -255,7 +255,16 @@ const ftin = f => {
   if (i === 12) { ft++; i = 0; }
   return (n?'-':'') + ft + '′' + (i ? ' ' + i + '″' : '');
 };
-const inches = f => Math.round(f * 12) + '″';
+/* ftin() was the only thing that read UNITS, so metric mode used to be half
+   applied: lengths converted while every area kept a literal ' sf' and every
+   stair/aisle/circulation figure kept a literal '″' — the Area tab read
+   "Bedroom | 3.96 m × 3.66 m | 156 sf", which is 14.5 m². These two put the
+   remaining quantities on the same switch. sqf takes SQUARE FEET; inch takes
+   INCHES (most callers already hold inches) and dp is the decimal places to
+   keep in imperial, where a riser is quoted as 7.20″ and an aisle as 46″. */
+const sqf = a => UNITS === 'm' ? (a * 0.09290304).toFixed(1) + ' m²' : Math.round(a) + ' sf';
+const inch = (i, dp) => UNITS === 'm' ? Math.round(i * 25.4) + ' mm'
+                                      : (dp == null ? Math.round(i) : i.toFixed(dp)) + '″';
 
 /* ══ materials ═════════════════════════════════════════════════════ */
 const M = {
@@ -770,16 +779,18 @@ PLANS.push({
           `The bump-out has to start east of the bedroom's party wall or the balcony would open off the bedroom. At the taped width it clears by ${ftin(G.balcX - C.bedW)} — it used to clear by 2′-0″, so the storage and coat closets are the next thing the tape will move.`),
       ]},
       { title: 'Built in — from the dimensions', rows: [
-        R('Galley aisle', Math.round(aisle) + '″', aisleState,
-          aisle > 56 ? `Too wide to be a galley. kitD derives to ${ftin(G.kitD)} from bathD + 4″, so the runs end up ${Math.round(aisle)}″ apart — that's a corridor kitchen, not a galley.`
+        R('Galley aisle', inch(aisle), aisleState,
+          aisle > 56 ? `Too wide to be a galley. kitD derives to ${ftin(G.kitD)} from bathD + 4″, so the runs end up ${inch(aisle)} apart — that's a corridor kitchen, not a galley.`
           : aisle < 42 ? `Below the 42″ rule — two people cannot pass, and an open oven door blocks the opposite run. A-101 draws the kitchen ${ftin(G.kitD)} deep with counters on both long walls.` : ''),
       ]},
       { title: `Entry stair — ${G.nRise} risers`, rows: [
-        R('Riser height', ri.toFixed(2) + '″', ri <= 7.75 ? (ri <= 7.25 ? 'pass' : 'tight') : 'fail',
+        /* the thresholds and the prose stay in inches — they quote the code,
+           which is written in inches — but the measured value follows UNITS */
+        R('Riser height', inch(ri, 2), ri <= 7.75 ? (ri <= 7.25 ? 'pass' : 'tight') : 'fail',
           ri > 7.75 ? 'Over the 7¾″ maximum. Add a riser, or drop the floor height.' : ''),
-        R('Tread depth', tr.toFixed(2) + '″', tr >= 11 ? 'pass' : tr >= 10 ? 'tight' : 'fail',
+        R('Tread depth', inch(tr, 2), tr >= 11 ? 'pass' : tr >= 10 ? 'tight' : 'fail',
           tr < 10 ? 'Under the 10″ minimum tread.' : ''),
-        R('2 × riser + tread', blondel.toFixed(1) + '″',
+        R('2 × riser + tread', inch(blondel, 1),
           blondel >= 24 && blondel <= 25 ? 'pass' : blondel >= 22 && blondel <= 26 ? 'tight' : 'fail',
           (blondel < 22 || blondel > 26) ? 'Outside 24–25″. The flight will not walk at a natural stride.' : ''),
         R('Flight fits the walkway', `${ftin(G.run)} of ${ftin(G.landY1 - G.landY0)}`,
@@ -1298,7 +1309,7 @@ PLANS.push({
         /* a U-kitchen's working aisle is the gap between the two facing
            runs; here that is the east run against the partition and the
            peninsula */
-        R('Kitchen aisle', Math.round(aisle) + '″',
+        R('Kitchen aisle', inch(aisle),
           aisle < 36 ? 'fail' : aisle < 42 ? 'tight' : aisle > 60 ? 'tight' : 'pass',
           aisle < 42 ? 'Under the 42″ a U-kitchen wants between facing runs — the dishwasher and the oven cannot both be open.' : ''),
         R('Bedroom door in the hall', ftin(brDoor),
@@ -1411,11 +1422,23 @@ function buildOBJ() {
     faces.push([key, list]);
   }
   const n = v => v.toFixed(5).replace(/\.?0+$/, '') || '0';
+  /* Gross is the sum of the FOOTPRINT rects, not C.W × C.D. The bounding box
+     of an L-shaped plan swallows the notch of outdoors beside it, so Hazel
+     exported as 692 sf while the app's own Area tab said 624 — areaReport()
+     masks by the same footprint (see its comment at "masked by the FOOTPRINT").
+     Computed inline rather than by calling areaReport(), which flips
+     showFixtures/wallMode and rebuilds the shell twice mid-export. */
+  const gross = U.footprint(C, G).reduce((s, r) => s + (r[2]-r[0])*(r[3]-r[1]), 0);
   const out = [
-    `# ${Math.round(C.W*C.D)} sq ft gross · one-bedroom unit, sheet A-101`,
+    /* was the fixed "one-bedroom unit, sheet A-101" — A-101 is Goldridge's
+       drawing, so a Hazel export cited the wrong apartment's sheet */
+    `# ${sqf(gross)} gross · ${U.name} · ${U.sub}`,
     `# interior ${ftin(C.W)} × ${ftin(C.D)}, ceiling ${ftin(C.ceiling)}`,
     '# axes: X east, Y up, Z south · units: metres',
-    'mtllib apartment.mtl', ''];
+    /* must name the file exportOBJ() actually writes. This said the literal
+       "apartment.mtl" while the download was `${U.id}.mtl`, so no viewer ever
+       found the materials and every model imported as flat default grey. */
+    `mtllib ${U.id}.mtl`, ''];
   for (const p of V) out.push(`v ${n(p[0]*FT_M)} ${n(p[2]*FT_M)} ${n(p[1]*FT_M)}`);
   out.push('');
   for (const [key, list] of faces) {
@@ -1426,7 +1449,7 @@ function buildOBJ() {
   return out.join('\n');
 }
 function buildMTL() {
-  const out = ['# materials for apartment.obj'];
+  const out = [`# materials for ${U.id}.obj`];   // same rename as mtllib, above
   for (const [k, m] of Object.entries(M)) {
     const [r,g,b] = m.c.map(v => (v/255).toFixed(4));
     out.push(`newmtl ${k}`, 'Ka 0.0000 0.0000 0.0000', `Kd ${r} ${g} ${b}`,
@@ -1501,7 +1524,8 @@ function buildGLTF() {
 
   return JSON.stringify({
     asset:{ version:'2.0',
-      generator:`Parametric unit model — sheet A-101, interior ${ftin(C.W)} × ${ftin(C.D)}` },
+      /* named the plan, not the hard-coded sheet — see buildOBJ's header */
+      generator:`Iso Home parametric unit model — ${U.name} · ${U.sub}, interior ${ftin(C.W)} × ${ftin(C.D)}` },
     scene:0, scenes:[{ name:'Unit', nodes: nodes.map((_,i) => i) }],
     nodes, meshes, materials, accessors, bufferViews,
     buffers:[{ byteLength: total, uri: 'data:application/octet-stream;base64,' + b64(buf) }],
@@ -2011,7 +2035,7 @@ function drawLabels() {
     if (!at) continue;                       // no part of this room reads
     const w = r[2]-r[0], d = r[3]-r[1];
     const lines = [{ t:n.toUpperCase(), font:DISP(), color:ink }];
-    if (big) lines.push({ t:`${ftin(w)} × ${ftin(d)} · ${Math.round(w*d)} sf`, font:MONO(), color:dim });
+    if (big) lines.push({ t:`${ftin(w)} × ${ftin(d)} · ${sqf(w*d)}`, font:MONO(), color:dim });
     ctx.save(); ctx.letterSpacing = '1.4px';
     text3(at, lines);
     ctx.restore();
@@ -2733,9 +2757,31 @@ function areaReport() {
      conclude a listing is wrong by comparing it against interior clear. */
   const grossExt = gi + 2*(C.W + C.D)*C.wallExt + 4*C.wallExt*C.wallExt
                       + (U.bumpGross ? U.bumpGross(C, G) : 0);
+  /* The extras column means "space outside the net" — Goldridge's balcony,
+     storage and coat closet all sit in the bump-out at negative Y, so they
+     are genuinely additional. Hazel's bedroom closet is not: it lies wholly
+     inside the footprint and is therefore already inside gross and net, so
+     listing it the same way double-counted 32 sf. Rather than special-case
+     that plan, measure it: an extra covered by the footprint is inside.
+     Tested against the same footprint areaReport masked the raster with,
+     so the flag can never disagree with the numbers above it. */
+  const fp = U.footprint(C, G);
+  const covered = r => {
+    const ar = a(r); if (ar <= 0) return false;   // a collapsed extra is neither
+    /* summed, not unioned — the footprint rects tile the floor and do not
+       overlap in either plan. A plan that returned overlapping rects would
+       need a union here, or an extra could read as covered when it is not. */
+    let c = 0;
+    for (const f of fp) {
+      const w = Math.min(r[2],f[2]) - Math.max(r[0],f[0]);
+      const h = Math.min(r[3],f[3]) - Math.max(r[1],f[1]);
+      if (w > 0 && h > 0) c += w*h;
+    }
+    return c >= ar - 1e-6;
+  };
   return {
     gross: gi, net: free/(S*S), grossExt,
-    extras: U.areaExtras(C, G).map(([n, dims, r]) => [n, dims, a(r)]),
+    extras: U.areaExtras(C, G).map(([n, dims, r]) => [n, dims, a(r), covered(r)]),
   };
 }
 
@@ -3732,7 +3778,7 @@ function fitData() {
   const sections = U.fit(C, G, R, grade);
 
   sections.push({ title: 'Circulation — narrowest point en route', rows: routes.map(r => r.widthIn
-    ? R(r.room, r.widthIn + '″', grade(r.widthIn, 30, 36),
+    ? R(r.room, inch(r.widthIn), grade(r.widthIn, 30, 36),
         r.widthIn < 36 && r.widthIn >= 30 ? 'Doorway-width pinch. Normal, but nothing bulky passes.' : '')
     : R(r.room, 'blocked', 'fail', 'No route wide enough to walk. Something is in the way.')) });
 
@@ -3746,7 +3792,7 @@ function fitData() {
   });
   if (gap !== null) {
     const st = gap >= 16 && gap <= 18 ? 'pass' : (gap >= 12 && gap <= 24 ? 'tight' : 'fail');
-    per.push(R('Sofa to coffee table', Math.round(gap) + '″', st,
+    per.push(R('Sofa to coffee table', inch(gap), st,
       st === 'pass' ? '' : "Wants 16–18″. Closer is a shin-barker, further and you can't reach it."));
   }
   sections.push({ title: 'Per-piece clearance', rows: per,
@@ -3755,12 +3801,18 @@ function fitData() {
   const A = areaReport(), sch = scheduled();
   const areaRows = roomList().filter(([n]) => sch.includes(n)).map(([n, r]) => ({
     label: n, size: `${ftin(r[2]-r[0])} × ${ftin(r[3]-r[1])}`,
-    sf: Math.round((r[2]-r[0]) * (r[3]-r[1])) + ' sf', strong: false }));
-  areaRows.push({ label: 'Gross building', size: 'to the outside of the exterior walls', sf: A.grossExt.toFixed(0) + ' sf', strong: false });
-  areaRows.push({ label: 'Gross interior', size: U.envelope(C, G), sf: A.gross.toFixed(0) + ' sf', strong: false });
-  areaRows.push({ label: 'Net floor', size: `less ${(A.gross - A.net).toFixed(0)} sf partitions`, sf: A.net.toFixed(0) + ' sf', strong: true });
-  for (const [n, dims, sf] of A.extras)
-    areaRows.push({ label: n, size: dims, sf: sf.toFixed(0) + ' sf', strong: false });
+    sf: sqf((r[2]-r[0]) * (r[3]-r[1])), strong: false }));
+  areaRows.push({ label: 'Gross building', size: 'to the outside of the exterior walls', sf: sqf(A.grossExt), strong: false });
+  areaRows.push({ label: 'Gross interior', size: U.envelope(C, G), sf: sqf(A.gross), strong: false });
+  areaRows.push({ label: 'Net floor', size: `less ${sqf(A.gross - A.net)} partitions`, sf: sqf(A.net), strong: true });
+  /* Everything below Net floor reads as an addition to it, which is true of
+     outdoor space but not of an extra that sits inside the envelope. Hazel's
+     bedroom closet is inside, and used to print exactly like the patio above
+     it — 32 sf of the 606 quoted twice. "of which" is how a schedule marks a
+     subtotal; the figure itself was, and stays, correct. */
+  for (const [n, dims, sf, inside] of A.extras)
+    areaRows.push({ label: inside ? `of which ${n.charAt(0).toLowerCase()}${n.slice(1)}` : n,
+                    size: dims, sf: sqf(sf), strong: false });
 
   return { problems: probs, sections, areaRows, area: A,
     footnote: U.areaNote(C, G, A) };
@@ -3829,7 +3881,10 @@ const API = {
     /* against NET floor, not the bounding box — an L-shaped plan's box
        includes a notch of outdoors and would understate every percentage */
     const net = areaReport().net || (C.W * C.D);
-    return { sf: a.toFixed(0), pct: (a / net * 100).toFixed(0) };
+    /* `sf` arrives formatted. The unit is UNITS' business and UNITS lives in
+       here, so the host cannot append 'sf' correctly — it used to, and got
+       square feet under a metric heading. */
+    return { sf: sqf(a), pct: (a / net * 100).toFixed(0) };
   },
   count: () => items.length,
   add, remove, duplicate, undo,

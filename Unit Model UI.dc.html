@@ -950,7 +950,9 @@ class Component extends DCLogic {
       out.hasItems = rows.length > 0;
       out.noItems = rows.length === 0;
       const c = api.coverage();
-      out.coverage = `${c.sf} sf · ${c.pct}%`;
+      /* c.sf now carries its own unit — the engine knows whether it is
+         showing sf or m², this component does not. */
+      out.coverage = `${c.sf} · ${c.pct}%`;
     }
     if (S.tab === 'fit') {
       if (this._fitTick !== S.tick || !this._fit) { this._fit = api.fit(); this._fitTick = S.tick; }
