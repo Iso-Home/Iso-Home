@@ -723,18 +723,27 @@ PLANS.push({
     /* What the tape actually read, in inches, kept so the two hallway numbers
        can be graded against it — both of them derive, so they are where the
        accumulated slop in a 23-foot chain of measurements comes out. */
-    const TAPE = { hallD: 38, hallL: 105 };
+    const TAPE = { hallD: 38, hallL: 105, livW: 155, dinW: 102 };
     const resid = (derivedFt, taped) => Math.round(derivedFt * 12 - taped);
     const slop = n => Math.abs(n) <= 2 ? 'pass' : Math.abs(n) <= 6 ? 'tight' : 'fail';
     const dHallD = resid(G.utilD, TAPE.hallD), dHallL = resid(C.bedW - C.wdW, TAPE.hallL);
+    const dLivW = resid(G.livW, TAPE.livW), dDinW = resid(G.dinW, TAPE.dinW);
     return [
       { title: 'Against the tape', rows: [
+        /* W is measured twice over, by two disjoint sets of rooms — bedroom +
+           living across the north, bathroom + kitchen + dining across the
+           south. Both bands derive their spare room from W, so these two rows
+           are how you find out that W itself is wrong. */
+        R('Width closes, north band', `${ftin(G.livW)} living vs ${TAPE.livW}″ taped`, slop(dLivW),
+          `livW = W − bedW − 4″. Off by ${dLivW > 0 ? '+' : ''}${dLivW}″ means W disagrees with the taped bedroom + living room.`),
+        R('Width closes, south band', `${ftin(G.dinW)} dining vs ${TAPE.dinW}″ taped`, slop(dDinW),
+          `dinW = W − bathW − 4″ − kitW. This is the row that moves when a real bathroom measurement goes in: off by ${dDinW > 0 ? '+' : ''}${dDinW}″ means the bathroom and W cannot both be right.`),
         R('Hallway depth', `${ftin(G.utilD)} vs ${TAPE.hallD}″ taped`, slop(dHallD),
           `Derives from D − bedD − bathD − 8″, so it collects the error from every reading above it. Out by ${dHallD > 0 ? '+' : ''}${dHallD}″.`),
         R('Hallway length', `${ftin(C.bedW - C.wdW)} vs ${TAPE.hallL}″ taped`, slop(dHallL),
           `Derives from bedW − wdW. wdW was set to make this land, so this agreeing proves nothing — it is the W/D alcove that is unverified.`),
         R('Bathroom', `${ftin(C.bathW)} × ${ftin(C.bathD)}`, 'tight',
-          'Never measured. The width is whatever W leaves after the kitchen run and the dining room, so every error upstream lands here. Measure this one next.'),
+          `Never measured — but not free either. ${ftin(C.bathW)} is the ONLY width at which the south band spans the same W as the taped bedroom + living room, so it is a prediction, not a guess. Measure it: if it comes back near ${ftin(C.bathW)} that independently confirms W from a disjoint set of rooms. If it comes back very different, the two width rows above go red and W is wrong — or the south band holds something unmeasured, a chase or a linen closet.`),
         R('Balcony clears the bedroom', ftin(G.balcX - C.bedW),
           G.balcX - C.bedW >= 1 ? 'pass' : G.balcX - C.bedW >= 0 ? 'tight' : 'fail',
           `The bump-out has to start east of the bedroom's party wall or the balcony would open off the bedroom. At the taped width it clears by ${ftin(G.balcX - C.bedW)} — it used to clear by 2′-0″, so the storage and coat closets are the next thing the tape will move.`),
