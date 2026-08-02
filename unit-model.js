@@ -2173,15 +2173,42 @@ function overlapsRect(poly, rect) {
    asked to stop. A piece must sit wholly inside the unit, or wholly on the
    balcony deck — the slider threshold is not a parking space.
    ══════════════════════════════════════════════════════════════════ */
+/* Is an axis-aligned box wholly covered by the union of `rects`?
+   Rect subtraction: start with the box as the only uncovered piece, cut each rect
+   out of whatever is left, and see if anything survives. A footprint is a handful
+   of rects, so this stays trivial — and unlike a corners-only test it is correct
+   for a box that straddles two of them. */
+function coveredBy(box, rects) {
+  let rest = [box];
+  for (const r of rects) {
+    const next = [];
+    for (const b of rest) {
+      if (r[2] <= b[0] || r[0] >= b[2] || r[3] <= b[1] || r[1] >= b[3]) { next.push(b); continue; }
+      if (b[1] < r[1]) next.push([b[0], b[1], b[2], r[1]]);            // strip to the north
+      if (b[3] > r[3]) next.push([b[0], r[3], b[2], b[3]]);            // to the south
+      const y0 = Math.max(b[1], r[1]), y1 = Math.min(b[3], r[3]);
+      if (b[0] < r[0]) next.push([b[0], y0, r[0], y1]);                // to the west
+      if (b[2] > r[2]) next.push([r[2], y0, b[2], y1]);                // to the east
+    }
+    rest = next.filter(b => b[2] - b[0] > 1e-9 && b[3] - b[1] > 1e-9);
+    if (!rest.length) return true;
+  }
+  return !rest.length;
+}
 function inBounds(it) {
-  const [x0,y0,x1,y1] = bboxOf(it);          // defined below; called at runtime
-  if (x0 >= 0 && x1 <= C.W && y0 >= 0 && y1 <= C.D) return true;
+  const box = bboxOf(it);                    // defined below; called at runtime
+  /* Was a plain [0,W] x [0,D] test. That is the BOUNDING BOX, not the floor:
+     hazel is L-shaped and the notch north of its dining bay is outdoors, so a
+     sofa could be placed standing on nothing. Ask the plan's own footprint. */
+  if (coveredBy(box, U.footprint(C, G).map(mRect))) return true;
   /* Was mRect(G.balcony). Only goldridge derives a `balcony`; hazel derives a
      `patio`, so on that plan this destructured undefined and threw the moment
      a piece left the envelope. Nothing had reached it before, because until the
-     Balcony catalog group there was no furniture anyone would put out there. */
-  const [b0,b1,b2,b3] = mRect(U.outdoor(C, G));
-  return x0 >= b0 && x1 <= b2 && y0 >= b1 && y1 <= b3;
+     Balcony catalog group there was no furniture anyone would put out there.
+     Kept as a separate test rather than folded into the footprint above: a
+     piece may sit wholly indoors or wholly on the deck, never straddling the
+     wall between them. */
+  return coveredBy(box, [mRect(U.outdoor(C, G))]);
 }
 function placeable(it) {
   const poly = corners(it);
