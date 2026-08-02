@@ -49,7 +49,7 @@ function createUnitModel(canvas, opts) {
    package.json carries the same number so `npm version` and the repo agree.
    Keeping two copies invites drift, so check-model.js asserts they match and
    fails the build if they do not — bump both, or CI says so. */
-const VERSION = '0.5';
+const VERSION = '0.51';
 
 const PLANS = [];
 const planById = id => PLANS.find(p => p.id === id) || PLANS[0];
@@ -292,6 +292,18 @@ const inch = (i, dp) => UNITS === 'm' ? Math.round(i * 25.4) + ' mm'
    inches-domain one. Guarded by UNITS above, so in imperial this is the
    same Math.round(f*12) + '″' it always was. */
 const ftinShort = f => (UNITS === 'm' || Math.abs(f) >= 1) ? ftin(f) : inch(f * 12);
+/* A furniture size for a list: the catalog holds INCHES, everything the user
+   reads is feet-and-inches. Rounds to the inch, so 46.625 reads 3′ 11″ — the
+   exact value stays in the catalog and is what every clearance test uses.
+
+   Except below an inch, where rounding is a lie: a MORUM rug is ¼″ thick and
+   ftinShort took it to "0″". Anything thinner than an inch keeps two decimals
+   with the trailing zeros trimmed, so the rug reads 0.25″ and the decking
+   0.75″. Only the floor coverings are ever in that range. */
+const size = (...inches) => inches.map(i => {
+  if (i > 0 && i < 1) return (UNITS === 'm' ? inch(i) : (+i.toFixed(2)) + '″');
+  return ftinShort(i / 12);
+}).join(' × ');
 /* The inverse of ftin(): whatever the app prints, this reads back. The
    Dimensions editor used to be the one surface still showing raw decimal
    feet (10.1667) because nothing here could parse anything else.
@@ -4031,11 +4043,17 @@ const API = {
     draw();
   },
   setUnits(u) { UNITS = u === 'm' ? 'm' : 'ft'; draw(); sync(); },
-  catalog: () => CAT.map(g => ({ g: g.g, items: g.items.map(it => ({ k: it.k, n: it.n, d: it.w + '×' + it.d })) })),
+  /* Catalog and Placed used to print the raw catalog inches, which was fine
+     while every piece was a whole number — 84×36 reads clearly enough. The
+     IKEA pieces are not: RÅDMANSÖ is 46.625 × 19.125 × 40.625, and the list
+     said exactly that, three decimal places deep, in a panel whose Dimensions
+     tab was busy showing 24′ 2″. One vocabulary. size() rounds to the inch for
+     display only — the model keeps the exact number for every fit test. */
+  catalog: () => CAT.map(g => ({ g: g.g, items: g.items.map(it => ({ k: it.k, n: it.n, d: size(it.w, it.d) })) })),
   placed() {
     return items.map(it => {
       const S = spec(it);
-      return { id: it.id, name: S.n, dims: S.w + '×' + S.d + '×' + S.h + '″',
+      return { id: it.id, name: S.n, dims: size(S.w, S.d, S.h),
         flag: !fits(it) ? 'blocked' : clearanceOK(it) === false ? 'tight' : '',
         selected: it.id === selId };
     });
