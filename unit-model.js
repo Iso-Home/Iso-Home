@@ -49,27 +49,39 @@ const planById = id => PLANS.find(p => p.id === id) || PLANS[0];
    coordinate below.
    ══════════════════════════════════════════════════════════════════ */
 const PLAN_A101 = {
-  /* ── MEASURED — off "unit 14 mockup design", sheet A-101, which supersedes
-        the earlier sheet. Confirmed with Mac as drawn in the AS-BUILT handing,
-        so `mirror` is off. The sheet notes these are inferred from a 3D
-        reference and must be field-verified. ── */
-  W:      28,          // interior width,  west→east   · 28′-0″  (29′-4″ exterior)
-  D:      23.5,        // interior depth, north→south  · 23′-6″  (24′-10″ exterior)
+  /* ── FIELD-MEASURED, 2026-08-01. Mac's tape, taken in the unit, and it
+        SUPERSEDES sheet A-101 — the sheet said as much ("inferred from a 3D
+        reference, field-verify"), and it is out by a lot: the drawing is
+        3′-10″ too WIDE and its dining room is more than twice the area of the
+        real one. Depth it gets to within 3″. Room topology is unchanged: the
+        rooms the sheet shows are the rooms that are there, in the same places.
+
+        Numbers marked ▸ are tape. Everything else is still inferred and is
+        what to measure next; the Fit tab lists them.
+
+        Consequence worth keeping in view: at these dimensions the unit is
+        ~562 sf gross, not the 650 sf advertised. ── */
+  W:      24 +  2/12,  // ▸ interior width,  west→east  · 24′-2″  = bedW + 4″ + living
+  D:      23 +  3/12,  // ▸ interior depth, north→south · 23′-3″  = living + dining
   ceiling: 8,
-  bedW:   13,          // bedroom, north-west corner   · 13′-0″
-  bedD:   12,          //   = living-room depth        × 12′-0″
-  bathW:   5,          // bathroom, south-west         ·  5′-0″
-  bathD:   8,          //   = kitchen depth            ×  8′-0″
-  kitW:   10 + 2/12,   // kitchen run length           · 10′-2″
+  bedW:   10 + 11/12,  // ▸ bedroom, north-west corner  · 10′-11″
+  bedD:   10 + 11/12,  // ▸   square                    × 10′-11″
+  livD:   15 +  4/12,  // ▸ living-room depth           · 15′-4″
+  partyD: 11 +  9/12,  // ▸ living/bedroom party wall   · 11′-9″
+  bathW:   5 +  6/12,  //   bathroom width — NOT MEASURED, back-solved from
+                       //   W − 4″ − kitW − dining, so it absorbs the slop
+  bathD:   8 +  4/12,  // ▸   = kitchen depth           ×  8′-4″
+  kitW:    9 + 10/12,  // ▸ kitchen run length          ·  9′-10″
 
   /* ── closets and the north-east bump-out ── */
-  wdW:     2 + 4/12,        // W/D alcove width        ·  2′-4″
-  closW:   8.5,             // bedroom reach-in        ·  8′-6″
-  closD:   2 + 7/12,        //                         ×  2′-7″
-  balcW:  11,               // balcony                 · 11′-0″
-  balcD:   6 + 2/12,        //   deck, wall to rail    ×  6′-2″
-  storW:   2 + 7/12,        // storage off the balcony ·  2′-7″
-  storD:   2 + 7/12,        //   coat closet matches   ×  2′-7″
+  wdW:     2 +  2/12,       //   W/D alcove — NOT MEASURED, set so the
+                            //   vestibule derives to the 8′-9″ hallway Mac taped
+  closW:   6 + 10/12,       // ▸ bedroom reach-in      ·  6′-10″
+  closD:   1 + 11/12,       // ▸                       ×  1′-11″
+  balcW:  10 +  2.5/12,     // ▸ balcony               · 10′-2½″
+  balcD:   5 +  7.5/12,     // ▸   deck, wall to rail  ×  5′-7½″
+  storW:   2 +  7/12,       //   storage off the balcony — NOT MEASURED
+  storD:   2 +  7/12,       //   coat closet matches   — NOT MEASURED
 
   /* ── glazing — the bedroom window is the only confirmed opening ── */
   winX:    1,          // from the west interior face
@@ -104,15 +116,22 @@ const PLAN_A101 = {
 /* ══ derivation ═══════════════════════════════════════════════════
    The tiling identities — what makes the plan re-solve instead of
    leaving orphan strips when a number changes:
-       bedW  = W − westW − wallInt        (the two bands must sum to W)
+       livW  = W − bedW − wallInt         (the two bands must sum to W)
        dinD  = D − livD                   (living stacks on dining)
-       utilD = D − livD − bathD − 2·wallInt   (the W/D band is the remainder)
-       kitD  = bathD + wallInt            (kitchen wall stacks on the bath wall)
+       utilD = D − bedD − bathD − 2·wallInt   (the W/D band is the remainder)
+       kitD  = bathD                      (kitchen shares the bathroom band)
        coatD = balcD − wallExt − wallInt − storD  (closets fill the bump-out)
        bumpW = storW + wallInt + balcW    (bump-out = closets + balcony)
+
+   NOTE, changed 2026-08-01: the living room used to be forced to bedD — the
+   sheet drew the bedroom spanning its whole west side. The tape says
+   otherwise. The bedroom is 10′-11″ deep, the living room 15′-4″, and the
+   difference is the hallway mouth opening off it. So living depth is its own
+   measured field (livD) and dining is what is left below it. Forcing the old
+   identity back would shorten the living room by 4′-5″.
    ══════════════════════════════════════════════════════════════════ */
 function deriveA101(c) {
-  const { W, D, bedW, bedD, bathW, bathD, kitW, wdW, closW, closD,
+  const { W, D, bedW, bedD, livD, bathW, bathD, kitW, wdW, closW, closD,
           balcW, balcD, storW, storD, wallInt: i, wallExt: e } = c;
 
   /* stair — risers divide the storey height as evenly as they can while
@@ -122,11 +141,11 @@ function deriveA101(c) {
   const riser = c.floorToFloor / nRise;
   const run   = (nRise - 1) * c.tread;
 
-  const livW  = W - bedW - i;             // 14′-8″ — living takes what's left
-  const kitD  = bathD;                    //  8′-0″ — kitchen shares the bath band
-  const dinW  = W - bathW - i - kitW;     // 12′-6″
-  const dinD  = D - bedD;                 // 11′-6″
-  const utilD = D - bedD - bathD - 2*i;   //  2′-10″ — the W/D band is the remainder
+  const livW  = W - bedW - i;             // 12′-11″ — living takes what's left
+  const kitD  = bathD;                    //  8′-4″ — kitchen shares the bath band
+  const dinW  = W - bathW - i - kitW;     //  8′-6″
+  const dinD  = D - livD;                 //  7′-11″ — dining is what is left below
+  const utilD = D - bedD - bathD - 2*i;   //  3′-4″ — the W/D band is the remainder
   const coatD = balcD - e - i - storD;    //  2′-7″
   const bumpW = balcW + i + storW;        // 13′-11″
 
@@ -170,7 +189,7 @@ function deriveA101(c) {
     rooms: {
       bedroom: [0, 0, bedW, bedD],
       closet:  [0, cy, closW, bedD],
-      living:  [lx, 0, W, bedD],
+      living:  [lx, 0, W, livD],
       vest:    [wdW, uy0, bedW, uy1],
       wd:      [0, uy0, wdW, uy1],
       bath:    [0, ky, bathW, D],
@@ -202,13 +221,15 @@ function problemsA101(c, g) {
   if (g.livW  <= 8) p.push(`Living width derives to ${ftin(g.livW)} — the bedroom is eating the east side.`);
   if (g.utilD <= 1.5) p.push(`W/D band derives to ${ftin(g.utilD)} — bedroom + bathroom leave no vestibule.`);
   if (g.dinW  <= 5) p.push(`Dining width derives to ${ftin(g.dinW)} — bath + kitchen span the whole south wall.`);
-  if (g.dinD  <= 5) p.push(`Dining depth derives to ${ftin(g.dinD)} — the bedroom band takes the whole plan.`);
+  if (g.dinD  <= 5) p.push(`Dining depth derives to ${ftin(g.dinD)} — the living room takes the whole plan.`);
+  if (c.livD  <= c.bedD) p.push(`Living depth ${ftin(c.livD)} is no deeper than the bedroom — the hallway has no mouth to open off.`);
+  if (c.partyD > c.livD) p.push(`Party wall ${ftin(c.partyD)} is longer than the living room it sits in.`);
   if (g.coatD <= 1) p.push(`Coat closet derives to ${ftin(g.coatD)} — the storage closet fills the bump-out.`);
   if (c.closW >  c.bedW)  p.push('Reach-in closet is wider than the bedroom.');
   if (c.wdW   >  c.bedW)  p.push('W/D alcove is wider than the band it sits in.');
   if (g.balcX <  c.bedW)  p.push('Balcony bump-out overruns the bedroom — it would sit off the living room wall.');
   if (c.winX + c.winW > c.bedW) p.push('Bedroom window runs past the bedroom into the living room.');
-  if (c.entryY + c.doorEntry > c.bedD) p.push('Entry door runs past the living room on the east wall.');
+  if (c.entryY + c.doorEntry > c.livD) p.push('Entry door runs past the living room on the east wall.');
   return p;
 }
 
@@ -432,8 +453,10 @@ function shellA101(C, G, h) {
   WX(W - storW - i, W+e, -(balcD+e), -balcD, 0, h, [], M.wall);
 
   /* interior partitions — all derived */
-  // bedroom east wall, north wall down to the bedroom's south wall
-  WY(0, uy0, bedW, bedW+i, 0, h, [], M.wall);
+  /* bedroom east wall — the living/bedroom party wall. Taped at 11′-9″, which
+     runs it past the bedroom's south-west corner and on to form the return at
+     the hallway mouth, so it is its own measurement rather than bedD + 4″. */
+  WY(0, C.partyD, bedW, bedW+i, 0, h, [], M.wall);
   // bedroom south wall — the door opens off the vestibule
   WX(-e, bedW+i, bedD, uy0, 0, h, [[op.bedDoor[0], op.bedDoor[1], 0, dh]], M.wall);
   // bedroom reach-in: east end wall, and the bypass head across its north face
@@ -627,8 +650,8 @@ function fixturesA101(C, G) {
 
 /* ── registry entry ─────────────────────────────────────────────── */
 PLANS.push({
-  id: 'goldridge', rev: 'v3', legacy: true,
-  name: 'Goldridge Apartments', tag: '650 sq ft', sub: 'Sheet A-101 · second storey',
+  id: 'goldridge', rev: 'v4', legacy: true,
+  name: 'Goldridge Apartments', tag: '650 sq ft', sub: 'Field-measured · second storey',
   PLAN: PLAN_A101, derive: deriveA101, problems: problemsA101,
   shell: shellA101, fixtures: fixturesA101,
   handed: true,
@@ -649,6 +672,9 @@ PLANS.push({
     ['Coat closet', `${ftin(C.storW)} × ${ftin(G.coatD)}`, G.rooms.coat],
   ],
   envelope: C => `${ftin(C.W)} × ${ftin(C.D)}`,
+  /* the closet stack at the east end of the bump-out is enclosed but sits
+     outside the envelope, so gross building area has to pick it up */
+  bumpGross: (C, G) => (C.storW + C.wallInt + C.wallExt) * (C.balcD + C.wallExt),
   pad: C => Math.max(2, C.balcD + C.wallExt + 1),
   seal: (C, G, stamp, PAD) => {
     const e = C.wallExt, bo = C.balcD + e;
@@ -665,9 +691,14 @@ PLANS.push({
     ['Balcony', G.balcony],
   ],
   entryProbe: (C, G) => [C.W - 2.2, G.op.entry[0], C.W - 0.1, G.op.entry[1]],
+  /* the one piece of floor outside the envelope you may still stand furniture
+     on. inBounds() needs this per-plan: it used to read G.balcony directly,
+     which is a key only this plan defines. */
+  outdoor: (C, G) => G.balcony,
   seedRect: (C, G, grp) =>
     grp === 'Bedroom' ? [G.rooms.bedroom[0], G.rooms.bedroom[1], G.rooms.bedroom[2], G.cy]
     : grp === 'Dining' ? G.rooms.dining
+    : grp === 'Balcony' ? G.balcony
     : G.rooms.living,
   keepOut: (C, G) => {
     const m = C.clearMain || 3, e = G.op.entry;
@@ -681,8 +712,9 @@ PLANS.push({
   derived: (C, G) => [
     ['Living width', G.livW, 'W − bedW − 4″'],
     ['Dining width', G.dinW, 'W − bathW − 4″ − kitW'],
-    ['Dining depth', G.dinD, 'D − bedD'],
-    ['W/D band depth', G.utilD, 'D − bedD − bathD − 8″'],
+    ['Dining depth', G.dinD, 'D − livD'],
+    ['Hallway depth', G.utilD, 'D − bedD − bathD − 8″'],
+    ['Hallway length', C.bedW - C.wdW, 'bedW − wdW'],
     ['Coat closet depth', G.coatD, 'balcD − 8″ − 4″ − storD'],
     ['Bump-out width', G.bumpW, 'balcW + 4″ + storW'],
     ['Galley aisle', (C.bathD - 2 * C.counterD), 'bathD − 2 × 25″'],
@@ -693,7 +725,34 @@ PLANS.push({
     const aisle = (C.bathD - 2 * C.counterD) * 12;
     const aisleState = aisle < 42 ? 'fail' : aisle > 56 ? 'fail' : aisle > 48 ? 'tight' : 'pass';
     const ri = G.riser * 12, tr = C.tread * 12, blondel = 2 * ri + tr;
+    /* What the tape actually read, in inches, kept so the two hallway numbers
+       can be graded against it — both of them derive, so they are where the
+       accumulated slop in a 23-foot chain of measurements comes out. */
+    const TAPE = { hallD: 38, hallL: 105, livW: 155, dinW: 102 };
+    const resid = (derivedFt, taped) => Math.round(derivedFt * 12 - taped);
+    const slop = n => Math.abs(n) <= 2 ? 'pass' : Math.abs(n) <= 6 ? 'tight' : 'fail';
+    const dHallD = resid(G.utilD, TAPE.hallD), dHallL = resid(C.bedW - C.wdW, TAPE.hallL);
+    const dLivW = resid(G.livW, TAPE.livW), dDinW = resid(G.dinW, TAPE.dinW);
     return [
+      { title: 'Against the tape', rows: [
+        /* W is measured twice over, by two disjoint sets of rooms — bedroom +
+           living across the north, bathroom + kitchen + dining across the
+           south. Both bands derive their spare room from W, so these two rows
+           are how you find out that W itself is wrong. */
+        R('Width closes, north band', `${ftin(G.livW)} living vs ${TAPE.livW}″ taped`, slop(dLivW),
+          `livW = W − bedW − 4″. Off by ${dLivW > 0 ? '+' : ''}${dLivW}″ means W disagrees with the taped bedroom + living room.`),
+        R('Width closes, south band', `${ftin(G.dinW)} dining vs ${TAPE.dinW}″ taped`, slop(dDinW),
+          `dinW = W − bathW − 4″ − kitW. This is the row that moves when a real bathroom measurement goes in: off by ${dDinW > 0 ? '+' : ''}${dDinW}″ means the bathroom and W cannot both be right.`),
+        R('Hallway depth', `${ftin(G.utilD)} vs ${TAPE.hallD}″ taped`, slop(dHallD),
+          `Derives from D − bedD − bathD − 8″, so it collects the error from every reading above it. Out by ${dHallD > 0 ? '+' : ''}${dHallD}″.`),
+        R('Hallway length', `${ftin(C.bedW - C.wdW)} vs ${TAPE.hallL}″ taped`, slop(dHallL),
+          `Derives from bedW − wdW. wdW was set to make this land, so this agreeing proves nothing — it is the W/D alcove that is unverified.`),
+        R('Bathroom', `${ftin(C.bathW)} × ${ftin(C.bathD)}`, 'tight',
+          `Never measured — but not free either. ${ftin(C.bathW)} is the ONLY width at which the south band spans the same W as the taped bedroom + living room, so it is a prediction, not a guess. Measure it: if it comes back near ${ftin(C.bathW)} that independently confirms W from a disjoint set of rooms. If it comes back very different, the two width rows above go red and W is wrong — or the south band holds something unmeasured, a chase or a linen closet.`),
+        R('Balcony clears the bedroom', ftin(G.balcX - C.bedW),
+          G.balcX - C.bedW >= 1 ? 'pass' : G.balcX - C.bedW >= 0 ? 'tight' : 'fail',
+          `The bump-out has to start east of the bedroom's party wall or the balcony would open off the bedroom. At the taped width it clears by ${ftin(G.balcX - C.bedW)} — it used to clear by 2′-0″, so the storage and coat closets are the next thing the tape will move.`),
+      ]},
       { title: 'Built in — from the dimensions', rows: [
         R('Galley aisle', Math.round(aisle) + '″', aisleState,
           aisle > 56 ? `Too wide to be a galley. kitD derives to ${ftin(G.kitD)} from bathD + 4″, so the runs end up ${Math.round(aisle)}″ apart — that's a corridor kitchen, not a galley.`
@@ -720,16 +779,23 @@ PLANS.push({
       ]},
     ];
   },
-  areaNote: (C, G, A) => `A-101 states 650 sf interior, but its own room schedule sums to 630 sf — it leaves out the ~30 sf vestibule. Measured off the drawn envelope the unit is ${A.gross.toFixed(0)} sf gross and ${A.net.toFixed(0)} sf net of partitions, so 650 sits between the two.`,
-  resetLabel: 'A-101',
+  areaNote: (C, G, A) => `The listed 650 sf is a GROSS BUILDING figure and the tape agrees with it: measured to the outside face of the exterior walls, and picking up the closet stack in the bump-out, this plan is ${A.grossExt.toFixed(0)} sf — within ${Math.abs(650 - A.grossExt).toFixed(0)} sf of the listing. Nothing is missing. Inside those walls you get ${A.gross.toFixed(0)} sf of interior and ${A.net.toFixed(0)} sf of actual floor, because ${(A.grossExt - A.net).toFixed(0)} sf of the 650 is wall: ${(2*(C.W + C.D)*C.wallExt + 4*C.wallExt*C.wallExt).toFixed(0)} sf of 8″ exterior envelope, ${(A.gross - A.net).toFixed(0)} sf of partitions, and the bump-out closets. A small unit has a lot of perimeter for its area, so that ratio is normal — but furniture goes in the ${A.net.toFixed(0)} sf, which is the number to shop against.`,
+  resetLabel: 'the tape survey',
   constants: `Near-certain in US residential. Interior partitions 4″, exterior 8″. Interior doors 32″×80″, entry and bedroom 36″×80″, bypass/bifold 30″. Counters 36″ high × 25″ deep, uppers at 54″.`,
   fields: [
-    { t: 'Envelope & rooms — from A-101',
-      note: `Every wall derives from these. Change one and the whole plan re-solves. Read off sheet A-101, which says they are inferred from a 3D reference and must be field-verified.`,
+    { t: 'Envelope & rooms — field-measured',
+      note: `Tape survey of 2026-08-01, which supersedes sheet A-101. W and D are not
+             independent readings: W is bedW + 4″ + the living-room width, D is the living
+             room plus the dining room. Measure the two overall runs directly and these are
+             the first numbers to correct. bathW is the one room here nobody has measured.`,
       rows: [['W','Interior width'], ['D','Interior depth'], ['ceiling','Ceiling height'],
-             ['bedW','Bedroom width'], ['bedD','Bedroom + living depth'],
-             ['bathW','Bathroom width'], ['bathD','Bath + kitchen depth'], ['kitW','Kitchen run']] },
+             ['bedW','Bedroom width'], ['bedD','Bedroom depth'],
+             ['livD','Living-room depth'], ['partyD','Living/bedroom wall'],
+             ['bathW','Bathroom width — unmeasured'], ['bathD','Bath + kitchen depth'],
+             ['kitW','Kitchen run']] },
     { t: 'Closets & balcony',
+      note: `The reach-in and the balcony are taped. The W/D alcove is set so the hallway
+             derives to the 8′-9″ measured; the two bump-out closets are still off the sheet.`,
       rows: [['wdW','W/D alcove width'], ['closW','Reach-in width'], ['closD','Reach-in depth'],
              ['balcW','Balcony width'], ['balcD','Balcony depth'],
              ['storW','Storage width'], ['storD','Storage depth'],
@@ -1158,6 +1224,8 @@ PLANS.push({
     ['Bedroom closet', `${ftin(C.cl2W)} × ${ftin(G.hallD)}`, G.rooms.closet],
   ],
   envelope: (C, G) => `${ftin(C.W)} × ${ftin(C.D)} less the ${ftin(C.livX)} × ${ftin(G.dy)} notch`,
+  /* storage closet off the patio — enclosed, outside the envelope */
+  bumpGross: (C, G) => (C.storW + C.wallInt + C.wallExt) * (C.patD + C.wallExt),
   pad: C => Math.max(2, C.patD + 2*C.wallExt + 1),
   seal: (C, G, stamp, PAD) => {
     const e = C.wallExt, bo = C.patD + 2*e;
@@ -1177,9 +1245,13 @@ PLANS.push({
   ],
   /* the entry is in the WEST wall, so the threshold is a Y-range */
   entryProbe: (C, G) => [C.livX + 0.1, G.op.entry[0], C.livX + 2.2, G.op.entry[1]],
+  /* this plan's outdoor floor is the patio, not a balcony — see the note on
+     goldridge's `outdoor`. Furniture in the Balcony catalog group seeds here. */
+  outdoor: (C, G) => G.patio,
   seedRect: (C, G, grp) =>
     grp === 'Bedroom' ? G.rooms.bedroom
     : grp === 'Dining' ? G.rooms.dining
+    : grp === 'Balcony' ? G.patio
     : G.rooms.living,
   keepOut: (C, G) => {
     const m = C.clearMain || 3, e = G.op.entry;
@@ -1232,7 +1304,7 @@ PLANS.push({
       ]},
     ];
   },
-  areaNote: (C, G, A) => `The listing states 616 sf. The drawing carries no dimension strings, so the scale came from the drawing itself — wall centrelines fit at ~35.4 px/ft, which independently makes the bedroom the 10′-1″ its own callout claims and the walls 7.6″ / 4.2″. At that scale the drawn envelope is ${A.gross.toFixed(0)} sf gross and ${A.net.toFixed(0)} sf net of partitions, so 616 sits between the two, which is how a listing quotes it. The room callouts are usable-area figures, not wall-to-wall: the living room's “9′-3″ × 12′-7″” is the north part of a band this model draws ${ftin(G.partX - C.livX)} × ${ftin(G.ky)}.`,
+  areaNote: (C, G, A) => `The listing states 616 sf. The drawing carries no dimension strings, so the scale came from the drawing itself — wall centrelines fit at ~35.4 px/ft, which independently makes the bedroom the 10′-1″ its own callout claims and the walls 7.6″ / 4.2″. At that scale the drawn envelope is ${A.gross.toFixed(0)} sf gross and ${A.net.toFixed(0)} sf net of partitions, so 616 sits between the two — this listing quotes INTERIOR, unlike Goldridge's 650, which is a gross-building figure. The two shortlist entries are not measured on the same basis; compare them on net floor, not on their headline numbers. The room callouts are usable-area figures, not wall-to-wall: the living room's “9′-3″ × 12′-7″” is the north part of a band this model draws ${ftin(G.partX - C.livX)} × ${ftin(G.ky)}.`,
   resetLabel: 'the leasing plan',
   constants: `Scaled off the drawing at 35.6 px/ft: exterior walls 7.6″, partitions 4.2″ —
      modelled at 8″ and 4″. Doors scale to 22–31″ on the sheet, which is narrower than any
@@ -1772,6 +1844,12 @@ const CAT = [
    {k:'tv55',   n:'TV, 55″',        w:48,d: 3,h:28,s:'tv'},
    {k:'tv65',   n:'TV, 65″',        w:57,d: 3,h:33,s:'tv'},
    {k:'shelf',  n:'Bookcase',       w:32,d:12,h:72,s:'case'},
+   /* ── IKEA, measured off the product pages, 2026-08-01. Fractions are the
+         listed sizes converted straight to decimal inches — 46 5/8″ is 46.625,
+         not "about 47". ── */
+   {k:'billy',  n:'BILLY bookcase',  w:31.5,  d:11,     h:41.75,  s:'case'},
+   {k:'eket4',  n:'EKET cabinet, 4 comp', w:27.5, d:13.75, h:27.5, s:'case'},
+   {k:'radcab', n:'RÅDMANSÖ cabinet', w:46.625, d:19.125, h:40.625, s:'case', clr:[0,0,30,0]},
    {k:'lamp',   n:'Floor lamp',     w:16,d:16,h:60,s:'lamp'},
    {k:'rug57',  n:'Rug, 5 × 7',     w:60,d:84, h:1,s:'rug'},
    {k:'rug810', n:'Rug, 8 × 10',    w:96,d:120,h:1,s:'rug'},
@@ -1785,6 +1863,12 @@ const CAT = [
    {k:'dchair', n:'Dining chair',   w:18,d:20,h:34,s:'chair'},
    {k:'stool',  n:'Counter stool',  w:16,d:16,h:26,s:'stool'},
    {k:'sideb',  n:'Sideboard',      w:60,d:18,h:32,s:'case'},
+   /* ── IKEA ── the gateleg is listed as both entries on purpose: a drop-leaf
+         is bought for the folded footprint and lived in at the open one, and
+         the clearance checker can only grade one shape at a time. ── */
+   {k:'alhult',   n:'ÅLHULT table',            w:31.5,   d:29.125, h:29.5, s:'table', clr:[36,36,36,36], rule:'diningChair'},
+   {k:'pinnfold', n:'PINNTORP gateleg, folded', w:26.375, d:29.5,  h:29.5, s:'table', clr:[36,36,36,36], rule:'diningChair'},
+   {k:'pinnopen', n:'PINNTORP gateleg, open',   w:48.875, d:29.5,  h:29.5, s:'table', clr:[36,36,36,36], rule:'diningChair'},
  ]},
  { g:'Bedroom', items:[
    {k:'king',   n:'King bed',   w:76,d:80,h:24,s:'bed', clr:[0,24,30,24], rule:'bed'},
@@ -1796,6 +1880,16 @@ const CAT = [
    {k:'tall',   n:'Tall dresser',w:34,d:18,h:50,s:'case',clr:[0,0,30,0]},
    {k:'ward',   n:'Wardrobe',   w:48,d:24,h:72,s:'case', clr:[0,0,30,0]},
    {k:'bench',  n:'Bed bench',  w:48,d:18,h:18,s:'soft'},
+   /* ── IKEA ── w × d are the frame's own overall size, NOT the mattress:
+         both of these are queens, and both are wider and longer than the
+         generic 60 × 80 above, which is the point of listing them.
+         h stays at the catalog's 24″ mattress-top convention — IKEA does not
+         publish one, since it depends on the mattress you put in. ── */
+   {k:'radbed',   n:'RÅDMANSÖ bed, queen', w:63,     d:87.375, h:24, s:'bed', clr:[0,24,30,24], rule:'bed'},
+   {k:'idanas',   n:'IDANÄS bed, queen',   w:62.625, d:88.25,  h:24, s:'bed', clr:[0,24,30,24], rule:'bed'},
+   {k:'radnight', n:'RÅDMANSÖ nightstand', w:21.25,  d:15.125, h:22.875, s:'case'},
+   {k:'raddres6', n:'RÅDMANSÖ 6-drawer dresser', w:62.625, d:18.875, h:31.875, s:'case', clr:[0,0,30,0]},
+   {k:'raddres5', n:'RÅDMANSÖ 5-drawer chest',   w:27.5,   d:18.875, h:52,     s:'case', clr:[0,0,30,0]},
  ]},
  { g:'Work & other', items:[
    {k:'desk63', n:'Desk, 63″ walnut', w:63,d:31.5,h:29,s:'desk', clr:[0,0,30,0]},
@@ -1808,12 +1902,32 @@ const CAT = [
    {k:'cube',   n:'Storage cubes',w:30,d:15,h:30,s:'case'},
    {k:'bike',   n:'Bike, upright',w:68,d:22,h:42,s:'soft'},
  ]},
+ /* Outdoor. inBounds() already allowed the bump-out; what was missing was
+    anything anyone would put there, and a seedRect case to drop it out there
+    rather than in the living room. Both plans map this group to their own
+    outdoor floor — goldridge's balcony, hazel's patio.
+    The bistro table's clearance is front-and-back only: on a 5′-7½″-deep
+    balcony you pull a chair out along the long axis, never across it. */
+ { g:'Balcony', items:[
+   {k:'tarnotab', n:'TÄRNÖ table',          w:21,    d:21.625, h:27.5, s:'table', clr:[24,0,24,0]},
+   {k:'tarnochr', n:'TÄRNÖ folding chair',  w:15,    d:15.75,  h:31,   s:'chair'},
+   {k:'morum',    n:'MORUM rug, in/outdoor',w:63,    d:91,     h:0.25, s:'rug'},
+   /* one 9-tile pack laid 3 × 3. IKEA quotes 8.72 sq ft a pack; 35¼″ square
+      is 8.63, the difference being the interlocking edges. */
+   {k:'runnen',   n:'RUNNEN decking, 3 × 3',w:35.25, d:35.25,  h:0.75, s:'deck'},
+ ]},
 ];
 const BYKEY = {}; CAT.forEach(g => g.items.forEach(it => BYKEY[it.k] = it));
 
 let items = [], selId = null, nextId = 1;
 const spec = it => BYKEY[it.k];
 const fW = it => spec(it).w/12, fD = it => spec(it).d/12, fH = it => spec(it).h/12;
+/* Floor coverings. Flat, stacked under everything and never on top of it, not
+   counted as furniture coverage, and never in another piece's way. Rugs and
+   deck tiles are identical in all four respects, so every place that used to
+   test `s === 'rug'` asks this instead — adding a third covering means adding
+   it here and nowhere else. */
+const isFloorCover = it => { const s = spec(it).s; return s === 'rug' || s === 'deck'; };
 
 /* ══════════════════════════════════════════════════════════════════
    STACKING
@@ -1832,7 +1946,7 @@ const fW = it => spec(it).w/12, fD = it => spec(it).d/12, fH = it => spec(it).h/
 function restack() {
   const list = items.slice().sort((a, b) => a.id - b.id);
   for (const it of list) {
-    if (spec(it).s === 'rug') { it.z = 0; continue; }
+    if (isFloorCover(it)) { it.z = 0; continue; }
     let z = 0;
     const c = corners(it);
     for (const o of list) {
@@ -1965,6 +2079,9 @@ function buildItem(it) {
       rbox(it,-X,-Y,0,X,Y,h-.08,ck); rbox(it,-X-.04,-Y-.04,h-.08,X+.04,Y+.04,h,wd); break;
     case 'soft': rbox(it,-X,-Y,0,X,Y,h,up); break;
     case 'rug':  rbox(it,-X,-Y,.05,X,Y,.05+h,sel?M.sel:M.rugm); break;
+    /* interlocking deck tiles — same flat slab as a rug, but in the deck
+       colour, and it belongs on the balcony rather than over the oak */
+    case 'deck': rbox(it,-X,-Y,.05,X,Y,.05+h,sel?M.sel:M.deck); break;
     case 'tv':
       rbox(it,-X,-Y,h*.18,X,Y,h,sel?M.sel:M.screen);
       rbox(it,-X*.25,-Y-.35,0,X*.25,Y+.35,h*.18,mt); break;
@@ -2069,7 +2186,11 @@ function overlapsRect(poly, rect) {
 function inBounds(it) {
   const [x0,y0,x1,y1] = bboxOf(it);          // defined below; called at runtime
   if (x0 >= 0 && x1 <= C.W && y0 >= 0 && y1 <= C.D) return true;
-  const [b0,b1,b2,b3] = mRect(G.balcony);
+  /* Was mRect(G.balcony). Only goldridge derives a `balcony`; hazel derives a
+     `patio`, so on that plan this destructured undefined and threw the moment
+     a piece left the envelope. Nothing had reached it before, because until the
+     Balcony catalog group there was no furniture anyone would put out there. */
+  const [b0,b1,b2,b3] = mRect(U.outdoor(C, G));
   return x0 >= b0 && x1 <= b2 && y0 >= b1 && y1 <= b3;
 }
 function placeable(it) {
@@ -2163,7 +2284,7 @@ function clearanceOK(it) {
   const cp = clearPoly(it); if (!cp) return null;
   for (const r of blockers) if (overlapsRect(cp, r)) return false;
   for (const o of items) {
-    if (o.id === it.id || spec(o).s === 'rug' || partnered(it, o) || o.z > 0) continue;
+    if (o.id === it.id || isFloorCover(o) || partnered(it, o) || o.z > 0) continue;
     if (overlapsPoly(cp, corners(o))) return false;      // exact footprint, not its AABB
   }
   return true;
@@ -2181,10 +2302,13 @@ const bboxOf = it => {
    Lifted out of add(), which is no longer the only caller — duplicate() has
    to make the same test, and used to make none at all. */
 function clearOfItems(it) {
-  if (spec(it).s === 'rug') return true;
+  /* isFloorCover, not s === 'rug': deck tiles are a floor covering too, and
+     testing the shape name directly would have made a RUNNEN pack block the
+     furniture standing on it. Same reason every other rug test moved. */
+  if (isFloorCover(it)) return true;
   const p = corners(it);
   for (const o of items) {
-    if (o.id === it.id || spec(o).s === 'rug') continue;
+    if (o.id === it.id || isFloorCover(o)) continue;
     if (overlapsPoly(p, corners(o))) return false;
   }
   return true;
@@ -2328,8 +2452,22 @@ function areaReport() {
      read `blockers`, and the fixture-less build above would hide the casework */
   buildShell();
   const a = r => (r[2]-r[0])*(r[3]-r[1]);
+  const gi = gross/(S*S);
+  /* Gross BUILDING area — measured to the outside face of the exterior walls,
+     which is what a listing quotes and what neither of the two numbers above
+     is. For any rectilinear outline the exterior area is the interior plus
+     perimeter × thickness plus one corner square per net convex corner; and a
+     staircase-convex plan (a rectangle, or an L) has the perimeter of its own
+     bounding box and exactly four net convex corners, so this holds for both
+     plans without special-casing the L. Anything enclosed OUTSIDE the envelope
+     — the closet stack in the bump-out — is the plan's to add.
+
+     This is the number that reconciles Goldridge to its listed 650 sf. Do not
+     conclude a listing is wrong by comparing it against interior clear. */
+  const grossExt = gi + 2*(C.W + C.D)*C.wallExt + 4*C.wallExt*C.wallExt
+                      + (U.bumpGross ? U.bumpGross(C, G) : 0);
   return {
-    gross: gross/(S*S), net: free/(S*S),
+    gross: gi, net: free/(S*S), grossExt,
     extras: U.areaExtras(C, G).map(([n, dims, r]) => [n, dims, a(r)]),
   };
 }
@@ -2581,17 +2719,31 @@ function add(k) {
      incomplete) a half-placed phantom used to be left behind in `items`,
      drawn, saved and counted, with an undo entry that restored nothing. */
   const it = { id: nextId++, k, x: cam.tx, y: cam.ty, rot: 0 };
-  const h = homeSeed(k);
-  const seed = [clamp(h[0],2,C.W-2), clamp(h[1],2,C.D-2)], cand = [];
+  const h = homeSeed(k), home = homeRect(k);
+  /* The sweep used to cover the envelope alone, and the seed was clamped into
+     it — so a piece whose home is the balcony got pulled indoors before the
+     search even began, and no candidate out on the deck ever existed to find.
+     Sweep the outdoor rect as well, and clamp the seed into the piece's own
+     home rather than into the envelope. Indoor pieces are unaffected: their
+     home is already inside, and the deck sweep only ever adds squares that
+     inBounds() was willing to accept anyway. */
+  const cl = (v, lo, hi) => hi - lo < 2 ? (lo + hi) / 2 : clamp(v, lo + 1, hi - 1);
+  const seed = home ? [cl(h[0], home[0], home[2]), cl(h[1], home[1], home[3])]
+                    : [clamp(h[0], 2, C.W - 2), clamp(h[1], 2, C.D - 2)];
+  const cand = [];
   /* 3" steps: a queen in a 12′ bedroom can clear 24″ both sides by under an
      inch, and a coarser grid simply never lands on it. */
-  for (let x=.5;x<=C.W-.5;x+=.25) for (let y=.5;y<=C.D-.5;y+=.25)
-    cand.push([x,y,(x-seed[0])**2+(y-seed[1])**2]);
+  const sweep = (x0, y0, x1, y1) => {
+    for (let x=x0+.5;x<=x1-.5;x+=.25) for (let y=y0+.5;y<=y1-.5;y+=.25)
+      cand.push([x,y,(x-seed[0])**2+(y-seed[1])**2]);
+  };
+  sweep(0, 0, C.W, C.D);
+  const deck = mRect(U.outdoor(C, G));
+  sweep(deck[0], deck[1], deck[2], deck[3]);
   cand.sort((a,b)=>a[2]-b[2]);
   /* Two passes: prefer somewhere the piece both fits AND keeps its declared
      clearance, so a new bed doesn't land jammed against a wall reporting FAIL.
      Fall back to merely fitting if the plan has no such spot. */
-  const home = homeRect(k);
   const inHome = ([x,y]) => !home || (x > home[0] && x < home[2] && y > home[1] && y < home[3]);
   /* 1. somewhere it fits AND keeps its clearance
      2. failing that, somewhere it merely fits INSIDE ITS OWN ROOM — a queen
@@ -2607,19 +2759,32 @@ function add(k) {
   const clearOfSpine = () => { const p = corners(it);
     return !spine.some(r => overlapsRect(p, r)); };
   const base = () => fits(it) && clearOfItems(it);   // hoisted: duplicate() needs it too
-  const passes = [
+  const inRoom = [
     ([x,y]) => inHome([x,y]) && base() && clearOfSpine() && clearanceOK(it) !== false,
     ([x,y]) => inHome([x,y]) && base() && clearOfSpine(),
     ([x,y]) => inHome([x,y]) && base(),
+  ];
+  const anywhere = [
     ()      => base() && clearOfSpine() && clearanceOK(it) !== false,
     ()      => base(),
     ()      => fits(it),
   ];
+  /* Every in-room pass square-on, THEN every in-room pass turned 90°, and only
+     then let the piece leave its room. Without the turn anything that fits its
+     room only the long way falls straight through to "anywhere it fits": the
+     balcony rug is 5′-3″ × 7′-7″ on a deck 5′-7½″ deep, so it was landing in
+     the living room. Rotation is tried only after square-on has failed at every
+     candidate in the room, so no placement that succeeds today can move. */
+  const plan = [];
+  for (const rot of [0, 90]) for (const t of inRoom) plan.push([rot, t]);
+  for (const t of anywhere) plan.push([0, t]);
   let placed = false;
-  for (const test of passes) {
+  for (const [rot, test] of plan) {
+    it.rot = rot;
     for (const c of cand) { it.x=c[0]; it.y=c[1]; if (test(c)) { placed = true; break; } }
     if (placed) break;
   }
+  if (!placed) it.rot = 0;
   pushUndo();                                   // only now is there anything to undo
   items.push(it);
   selId = it.id; save(); sync(); draw();
@@ -3150,6 +3315,7 @@ function fitData() {
   const areaRows = roomList().filter(([n]) => sch.includes(n)).map(([n, r]) => ({
     label: n, size: `${ftin(r[2]-r[0])} × ${ftin(r[3]-r[1])}`,
     sf: Math.round((r[2]-r[0]) * (r[3]-r[1])) + ' sf', strong: false }));
+  areaRows.push({ label: 'Gross building', size: 'to the outside of the exterior walls', sf: A.grossExt.toFixed(0) + ' sf', strong: false });
   areaRows.push({ label: 'Gross interior', size: U.envelope(C, G), sf: A.gross.toFixed(0) + ' sf', strong: false });
   areaRows.push({ label: 'Net floor', size: `less ${(A.gross - A.net).toFixed(0)} sf partitions`, sf: A.net.toFixed(0) + ' sf', strong: true });
   for (const [n, dims, sf] of A.extras)
@@ -3218,7 +3384,7 @@ const API = {
     });
   },
   coverage() {
-    const a = items.reduce((s, it) => s + (spec(it).s === 'rug' ? 0 : fW(it) * fD(it)), 0);
+    const a = items.reduce((s, it) => s + (isFloorCover(it) ? 0 : fW(it) * fD(it)), 0);
     /* against NET floor, not the bounding box — an L-shaped plan's box
        includes a notch of outdoors and would understate every percentage */
     const net = areaReport().net || (C.W * C.D);
