@@ -77,11 +77,14 @@
       <div style="font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 9.5px; font-weight: 500; color: #949A9E; padding: 5px 8px 6px;">Apartments in consideration</div>
       <sc-for list="{{ apartments }}" as="a" hint-placeholder-count="2">
         <div style="display: grid; grid-template-columns: 1fr 24px; align-items: center; border-radius: 6px; background: {{ a.bg }};" style-hover="background:#E2EDF7">
-          <button type="button" onClick="{{ a.on }}" style="display: grid; grid-template-columns: 13px 1fr; align-items: baseline; gap: 9px; width: 100%; text-align: left; font: inherit; font-size: 13px; color: #393E41; background: transparent; border: 0; border-radius: 6px; padding: 7px 2px 7px 8px; cursor: pointer; min-width: 0;">
+          <button type="button" onClick="{{ a.on }}" style="display: grid; grid-template-columns: 13px 1fr; align-items: baseline; gap: 9px; width: 100%; text-align: left; font: inherit; font-size: 13px; color: {{ a.fg }}; background: transparent; border: 0; border-radius: 6px; padding: 7px 2px 7px 8px; cursor: {{ a.cursor }}; min-width: 0;">
             <span style="font-size: 10px; line-height: 1.4; color: #3F88C5;">{{ a.mark }}</span>
             <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
               <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ a.name }}</span>
-              <span style="font-family: Menlo, ui-monospace, monospace; font-size: 10.5px; color: #949A9E;">{{ a.meta }}</span>
+              <span style="display: flex; align-items: baseline; gap: 6px; min-width: 0;">
+                <span style="font-family: Menlo, ui-monospace, monospace; font-size: 10.5px; color: #949A9E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ a.meta }}</span>
+                <span style="display: {{ a.pendShow }}; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.1em; font-size: 8.5px; line-height: 1.5; color: #8A6216; background: #FBF1DC; border: 1px solid #E4CB93; border-radius: 4px; padding: 0 4px; flex: none;">Pending</span>
+              </span>
             </span>
           </button>
           <button type="button" title="{{ a.delTitle }}" aria-label="{{ a.delTitle }}" onClick="{{ a.onDel }}" style="display: {{ a.delShow }}; font: inherit; font-size: 15px; line-height: 1; color: #949A9E; background: transparent; border: 0; border-radius: 4px; padding: 3px 6px; margin-right: 3px; cursor: pointer; justify-self: end;" style-hover="color:#C0341F;background:#F7E4E1">×</button>
@@ -99,7 +102,8 @@
     <div onClick="{{ onAddBackdrop }}" style="position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(57,62,65,0.34);">
       <div onClick="{{ stop }}" style="width: 470px; max-width: 100%; max-height: 100%; overflow: hidden auto; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 12px; box-shadow: 0 24px 64px rgba(57,62,65,0.28); padding: 20px 20px 18px;">
         <h3 style="margin: 0 0 5px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 11px; font-weight: 500; color: #393E41;">Add an apartment</h3>
-        <p style="font-size: 12px; color: #61666A; margin: 0 0 16px; max-width: 56ch;">A floor plan to model from, and at least three photos so the rooms can be read against it.</p>
+        <p style="font-size: 12px; color: #61666A; margin: 0 0 6px; max-width: 56ch;">A floor plan to model from, and at least three photos so the rooms can be read against it.</p>
+        <p style="font-size: 12px; color: #8A6216; background: #FBF1DC; border: 1px solid #E4CB93; border-radius: 7px; padding: 6px 9px; margin: 0 0 16px; max-width: 56ch;">Modelling happens off the plan you upload — until it is done the apartment sits on the shortlist marked <b>Pending</b>, and the files stay in this tab only.</p>
 
         <label style="display: block; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.12em; font-size: 9.5px; font-weight: 500; color: #949A9E; margin-bottom: 5px;">Name</label>
         <input type="text" value="{{ draftName }}" onChange="{{ onDraftName }}" placeholder="Goldridge Apartments" style="width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; color: #393E41; background: #FFFFFF; border: 1px solid #DCDDCB; border-radius: 7px; padding: 7px 9px; margin-bottom: 16px;" />
@@ -210,12 +214,18 @@
     <!-- ── Add ── -->
     <sc-if value="{{ isAdd }}" hint-placeholder-val="{{ true }}">
       <div role="tabpanel" style="flex: 1; overflow: hidden auto; padding: 14px; min-height: 0;">
-        <p style="font-size: 12px; color: #61666A; margin: 0 0 10px; max-width: 60ch;">Drag a piece onto the plan to place it — it settles on the nearest clear spot if you let go over a wall. Drag it again to move it, <b>R</b> rotates, <b>delete</b> removes. Everything saves as you go.</p>
+        <p style="font-size: 12px; color: #61666A; margin: 0 0 10px; max-width: 60ch;">Tap a piece to drop it into the room it belongs to, or drag it onto the plan to say exactly where — it settles on the nearest clear spot if you let go over a wall. Drag it again to move it, <b>R</b> rotates, <b>delete</b> removes. Everything saves as you go.</p>
         <sc-for list="{{ catalog }}" as="grp" hint-placeholder-count="4">
           <div style="display: flex; flex-direction: column; gap: 1px; margin-bottom: 16px;">
             <h4 style="margin: 0 0 5px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">{{ grp.g }}</h4>
             <sc-for list="{{ grp.items }}" as="it" hint-placeholder-count="5">
-              <div draggable="true" onDragStart="{{ it.onDragStart }}" onDragEnd="{{ onDragEnd }}" style="display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 10px; width: 100%; text-align: left; font: inherit; font-size: 13px; color: #393E41; background: transparent; border: 0; border-radius: 6px; padding: 6px 8px; cursor: grab;" style-hover="background:#E2EDF7">
+              <!-- draggable div AND a click target: HTML5 dragstart is never
+                   synthesised from touch, so on an iPad the drag handlers
+                   below can never fire and the catalog was a dead end. The
+                   element stays a div so the mouse drag path is untouched;
+                   role/tabIndex/onKeyDown give it the button behaviour it
+                   now needs. -->
+              <div role="button" tabIndex="0" title="{{ it.title }}" draggable="true" onClick="{{ it.onAdd }}" onKeyDown="{{ it.onKey }}" onDragStart="{{ it.onDragStart }}" onDragEnd="{{ onDragEnd }}" style="display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 10px; width: 100%; text-align: left; font: inherit; font-size: 13px; color: #393E41; background: transparent; border: 0; border-radius: 6px; padding: 6px 8px; cursor: grab;" style-hover="background:#E2EDF7">
                 <span>{{ it.n }}</span>
                 <span style="font-family: Menlo, ui-monospace, monospace; font-size: 11px; color: #949A9E; white-space: nowrap;">{{ it.d }}</span>
               </div>
@@ -261,7 +271,7 @@
           </div>
         </sc-if>
         <sc-if value="{{ noItems }}" hint-placeholder-val="{{ false }}">
-          <div style="color: #949A9E; font-size: 12.5px; padding: 2px 0;">Nothing placed yet — drag something in from the <b>Add</b> tab. What you add becomes your shopping list, every piece with the footprint to check against a product page.</div>
+          <div style="color: #949A9E; font-size: 12.5px; padding: 2px 0;">Nothing placed yet — tap or drag one in from the <b>Add</b> tab. What you add becomes your shopping list, every piece with the footprint to check against a product page.</div>
         </sc-if>
 
         <h4 style="margin: 18px 0 7px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">Save state</h4>
@@ -293,7 +303,7 @@
           </div>
         </sc-if>
 
-        <p style="font-size: 12px; color: #61666A; margin: 0 0 10px; max-width: 60ch;">Autosave only reaches this browser at this address &mdash; open the same model from a different address and it starts empty. A project file is the copy that survives: it holds <b>every</b> apartment&rsquo;s furniture and dimensions in one document.</p>
+        <p style="font-size: 12px; color: #61666A; margin: 0 0 10px; max-width: 60ch;">Autosave only reaches this browser at this address &mdash; open the same model from a different address and it starts empty. A project file is the copy that survives: it holds <b>every modelled</b> apartment&rsquo;s furniture and dimensions in one document &mdash; the ones listed just above.</p>
         <div style="display: flex; flex-wrap: wrap; gap: 5px;">
           <sc-if value="{{ linkOff }}" hint-placeholder-val="{{ true }}">
             <button type="button" onClick="{{ onLink }}" style="font: inherit; font-size: 11.5px; color: #FFFFFF; background: #3F88C5; border: 1px solid #3F88C5; border-radius: 6px; padding: 4px 9px; cursor: pointer;" style-hover="background:#356F9F;border-color:#356F9F">Keep in a file&hellip;</button>
@@ -356,16 +366,22 @@
     <!-- ── Dimensions ── -->
     <sc-if value="{{ isCfg }}" hint-placeholder-val="{{ false }}">
       <div role="tabpanel" style="flex: 1; overflow: hidden auto; padding: 14px; min-height: 0;">
+        <!-- the panel names its own units, because it did not used to: these
+             fields showed bare decimal feet (10.1667) directly above a
+             derived block reading 10′ 2″ for the same kind of quantity. The
+             wording holds in metres mode too, where a plain number is metres. -->
+        <p style="font-size: 12px; color: #61666A; margin: 0; max-width: 60ch;">Every figure is a measurement off the drawing, written the way you read it off a tape: <b>10&prime; 2&Prime;</b>. Type it that way, or in inches (<b>26&Prime;</b>) or metres (<b>3.1 m</b>) &mdash; a plain number is read in the units shown. Enter or click away to apply; &uarr;&darr; nudge by an inch.</p>
         <sc-for list="{{ cfgGroups }}" as="grp" hint-placeholder-count="3">
           <div style="margin-bottom: 4px;">
             <h3 style="margin: 18px 0 7px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; font-weight: 500; color: #949A9E;">{{ grp.title }}</h3>
             <sc-if value="{{ grp.hasNote }}" hint-placeholder-val="{{ true }}">
               <p style="font-size: 12px; color: #61666A; margin: 0 0 10px; max-width: 60ch;">{{ grp.note }}</p>
             </sc-if>
-            <div style="display: grid; grid-template-columns: 1fr 76px; gap: 5px 8px; align-items: center; margin-bottom: 6px;">
+            <div style="display: grid; grid-template-columns: 1fr 88px; gap: 5px 8px; align-items: center; margin-bottom: 6px;">
               <sc-for list="{{ grp.rows }}" as="row" hint-placeholder-count="8">
                 <label style="font-size: 12.5px; color: #61666A;">{{ row.label }}</label>
-                <input type="number" step="0.25" min="1" value="{{ row.value }}" onChange="{{ row.onChange }}" style="font-family: Menlo, ui-monospace, monospace; font-size: 12px; text-align: right; padding: 4px 6px; width: 100%; background: #EBECDD; color: #393E41; border: 1px solid #DCDDCB; border-radius: 5px;">
+                <input type="text" spellcheck="false" title="{{ row.hint }}" value="{{ row.value }}" onChange="{{ row.onChange }}" onBlur="{{ row.onCommit }}" onKeyDown="{{ row.onKey }}" style="font-family: Menlo, ui-monospace, monospace; font-size: 12px; text-align: right; padding: 4px 6px; width: 100%; background: {{ row.bg }}; color: #393E41; border: 1px solid {{ row.bd }}; border-radius: 5px;">
+                <small style="display: {{ row.errShow }}; grid-column: 1 / -1; margin: -3px 0 3px; font-size: 11px; color: #C0341F;">{{ row.err }}</small>
               </sc-for>
             </div>
           </div>
@@ -469,7 +485,11 @@ class Component extends DCLogic {
     addOpen: false, aptDraft: { name: '', plan: null, photos: [] }, confirmApt: null,
     flags: { fix: true, dim: true, lab: true, grid: false, clr: false },
     status: 'Saved', fresh: false, tick: 0, ready: false, filtersOpen: false, camTick: 0, menuPos: { top: '58px', right: '14px' },
-    area: null, draft: {}, copyLabel: 'Copy list', objLabel: 'Export .obj + .mtl',
+    /* `draft` is what has been typed into a Dimensions field and not yet
+       committed; `cfgErr` is why the model refused it. The two are cleared
+       together, always — a stale reason under a field that has moved on is
+       the same lie in the other direction. */
+    area: null, draft: {}, cfgErr: {}, copyLabel: 'Copy list', objLabel: 'Export .obj + .mtl',
     projectLabel: 'Save project\u2026',
     gltfLabel: 'Export .gltf',
   };
@@ -542,7 +562,7 @@ class Component extends DCLogic {
       if (e.key !== 'Escape') return;
       /* innermost first: confirm sheet, then the add modal, then the menus */
       if (this.state.confirmApt) { this.setState({ confirmApt: null }); return; }
-      if (this.state.addOpen) { this.setState({ addOpen: false }); return; }
+      if (this.state.addOpen) { this.closeAdd(); return; }
       if (this.state.aptOpen) this.setState({ aptOpen: false });
       if (this.state.filtersOpen) this.setState({ filtersOpen: false });
     };
@@ -560,6 +580,21 @@ class Component extends DCLogic {
     this._msg = setTimeout(() => this.setState({ fresh: false }), 2600);
   }
 
+  /* Every thumbnail in the add sheet is an object URL, and an object URL
+     holds its file in memory until it is handed back. Nothing was handing
+     them back, so a few passes through the picker pinned every photo ever
+     chosen for the life of the tab. Closing the sheet is the last moment
+     anything can read them. */
+  dropDraftPhotos() {
+    for (const p of this.state.aptDraft.photos) {
+      try { URL.revokeObjectURL(p.url); } catch (e) {}
+    }
+  }
+  closeAdd() {
+    this.dropDraftPhotos();
+    this.setState({ addOpen: false, aptDraft: { name: '', plan: null, photos: [] } });
+  }
+
   /* Anything that restores a project reselects an apartment underneath us,
      so the shortlist, the handing switch and the area tag all have to be
      re-read. Three different entry points need this; none should do it by
@@ -569,7 +604,11 @@ class Component extends DCLogic {
     this.setState(st => ({
       area: this.api.area(),
       hand: this.api.mirrored() ? 'mirror' : 'plan',
-      draft: {}, ortho: false,
+      draft: {}, cfgErr: {},
+      /* READ the projection back rather than assert it. Asserting false here
+         put the rail on 3D over a canvas the engine was still drawing
+         orthographically, because nothing in a restore touches ORTHO. */
+      ortho: this.api.ortho(),
       tick: st.tick + 1,
       activeApt: (st.apartments.find(a => a.unit === p.id) || st.apartments[0]).id,
     }));
@@ -582,15 +621,21 @@ class Component extends DCLogic {
      changes the status line. Handing is per plan, so it is re-read here: one
      apartment is the mirror of its sheet and the other is not. */
   selectApt(a) {
-    if (!a) return;
+    /* The guard comes BEFORE the name changes. It used to run after, so an
+       entry with no plan behind it could become the active name while the
+       model was left drawing the previous apartment — the rail said one
+       thing, the canvas, the Dimensions tab and the Fit tab said another. */
+    if (!a || !a.unit || !this.api) return;
     this.setState({ activeApt: a.id });
-    if (!a.unit || !this.api) return;
     if (!this.api.selectPlan(a.unit)) return;      // already on it
     const p = this.api.plan();
     this.setState({
       area: this.api.area(),
       hand: this.api.mirrored() ? 'mirror' : 'plan',
-      draft: {}, ortho: false,
+      draft: {}, cfgErr: {},
+      /* the engine keeps the projection across a switch — comparing two
+         plans is exactly why you switch — so read it, don't assume it */
+      ortho: this.api.ortho(),
     });
     this.note(`${p.name} — ${p.tag}`);
   }
@@ -623,6 +668,7 @@ class Component extends DCLogic {
     window.removeEventListener('pointerdown', this._away, true);
     window.removeEventListener('keydown', this._esc);
     if (this._bar) this._bar.disconnect();
+    this.dropDraftPhotos();
     if (this.api) this.api.destroy();
   }
 
@@ -637,19 +683,89 @@ class Component extends DCLogic {
     this.setState({ [key]: label });
     setTimeout(() => this.setState({ [key]: back }), 1400);
   }
+  /* ── the Dimensions editor ──────────────────────────────────────────
+     One field, one dimension, in the same feet-and-inches the rest of the
+     app speaks. Three rules keep the field and the model from ever quietly
+     disagreeing:
+
+       · TYPING ONLY FILLS THE DRAFT. The old handler committed on every
+         keystroke, so clearing "13" and retyping it drove the model through
+         bedW=1 — the plan visibly collapsed and re-formed mid-word, and a
+         slipped decimal like 235 re-solved and re-scanned the whole floor
+         on its way past.
+       · A VALUE THE MODEL WON'T TAKE IS REFUSED OUT LOUD. It used to be
+         swallowed: `if (isFinite(v) && v > 0)` with no else, so typing 0
+         left the field reading 0 over a canvas still drawing 28 feet, with
+         nothing anywhere saying it had been rejected.
+       · THE DRAFT IS DROPPED THE MOMENT IT LANDS, so the field falls back
+         to what the model actually holds and the two cannot drift apart.
+
+     The bound is the plan's own figure: a dimension may go down to 3″ and
+     up to three times what the drawing says. That is what catches 235 for
+     23.5 — the typo that used to sail through and allocate a 6,500 sf
+     apartment on one keystroke. */
+  cfgErr(v, def) {
+    if (!isFinite(v)) return 'Not a length — try 10′ 2″, 10.5, 26″ or 3.1 m';
+    if (v < 0.25) return 'Too small — 3″ is the floor';
+    if (def > 0 && v > def * 3) return `Too large — ${this.api.ftin(def * 3)} is as far as this one goes`;
+    return '';
+  }
   setCfg(k, raw) {
-    const v = parseFloat(raw);
-    this.setState(s => ({ draft: { ...s.draft, [k]: raw } }));
-    if (isFinite(v) && v > 0) { this.api.setConfig(k, v); this.setState({ area: this.api.area() }); }
+    /* the reason clears as soon as you start retyping — a red field you are
+       already fixing is just noise */
+    this.setState(s => ({ draft: { ...s.draft, [k]: raw }, cfgErr: { ...s.cfgErr, [k]: '' } }));
+  }
+  /* drop the draft for one row: the field re-reads the model */
+  clearDraft(k, extra) {
+    this.setState(s => {
+      const draft = { ...s.draft }, cfgErr = { ...s.cfgErr };
+      delete draft[k]; delete cfgErr[k];
+      return { draft, cfgErr, ...(extra || {}) };
+    });
+  }
+  applyCfg(k, v, def) {
+    const err = this.cfgErr(v, def);
+    if (err) { this.setState(s => ({ cfgErr: { ...s.cfgErr, [k]: err } })); return false; }
+    this.api.setConfig(k, v);
+    this.clearDraft(k, { area: this.api.area() });
+    return true;
+  }
+  commitCfg(k, def) {
+    const raw = this.state.draft[k];
+    if (raw === undefined) return;                 // nothing typed, nothing to commit
+    this.applyCfg(k, this.api.parseLen(raw), def);
+  }
+  /* ↑↓ replace the spinner the old number field had — which was useless
+     anyway, since min="1" step="0.25" could not reach 11″ or 10′ 2″ */
+  nudgeCfg(k, def, from, step) {
+    this.applyCfg(k, Math.round((from + step) * 48) / 48, def);   // to the nearest ¼″
   }
 
   cfgRows(list) {
-    const S = this.state;
-    return list.map(r => ({
-      k: r.k, label: r.label,
-      value: S.draft[r.k] !== undefined ? S.draft[r.k] : r.value,
-      onChange: e => this.setCfg(r.k, e.target.value),
-    }));
+    const S = this.state, api = this.api;
+    return list.map(r => {
+      const typed = S.draft[r.k];
+      const live = typed !== undefined ? api.parseLen(typed) : r.ft;
+      const err = S.cfgErr[r.k] || '';
+      return {
+        k: r.k, label: r.label,
+        value: typed !== undefined ? typed : r.value,
+        hint: `${r.label} — the drawing says ${api.ftin(r.def)}. Type 10′ 2″, 10.5, 26″ or 3.1 m.`,
+        err, errShow: err ? 'block' : 'none',
+        bd: err ? '#C0341F' : '#DCDDCB', bg: err ? '#F7E4E1' : '#EBECDD',
+        onChange: e => this.setCfg(r.k, e.target.value),
+        onCommit: () => this.commitCfg(r.k, r.def),
+        onKey: e => {
+          if (e.key === 'Enter') { e.preventDefault(); this.commitCfg(r.k, r.def); }
+          else if (e.key === 'Escape') { e.preventDefault(); this.clearDraft(r.k); }
+          else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            const step = (e.shiftKey ? 1 : 1 / 12) * (e.key === 'ArrowUp' ? 1 : -1);
+            this.nudgeCfg(r.k, r.def, isFinite(live) ? live : r.ft, step);
+          }
+        },
+      };
+    });
   }
 
   renderVals() {
@@ -692,18 +808,28 @@ class Component extends DCLogic {
       apartments: S.apartments.map(a => ({
         name: a.name,
         meta: a.unit ? `${a.photos} photos · modelled` : `${a.photos} photos · ${a.plan}`,
+        /* an upload is on the shortlist but not openable, so it says so and
+           stops looking like a row that would do something if clicked */
+        pendShow: a.unit ? 'none' : 'inline-block',
+        fg: a.unit ? '#393E41' : '#949A9E',
+        cursor: a.unit ? 'pointer' : 'default',
         mark: a.id === S.activeApt ? '●' : '',
         bg: a.id === S.activeApt ? '#E2EDF7' : 'transparent',
-        /* the last one on the shortlist keeps its × hidden — there is no
-           sensible state with nothing selected */
-        delShow: S.apartments.length > 1 ? 'block' : 'none',
+        /* The × is hidden when removing this row would leave nothing the
+           model can draw. It used to hide only on the very last row, so
+           deleting both modelled apartments in front of an upload was
+           possible — and left the rail naming an apartment nothing could
+           open, over a canvas still drawing the one just deleted, with no
+           way back for the rest of the session. */
+        delShow: (S.apartments.length > 1 && (!a.unit || S.apartments.filter(x => x.unit).length > 1))
+          ? 'block' : 'none',
         delTitle: `Delete ${a.name}`,
         onDel: e => { e.stopPropagation(); this.setState({ confirmApt: { id: a.id, name: a.name } }); },
         on: () => {
           this.setState({ aptOpen: false });
           /* an entry with no plan behind it would otherwise show the previous
              apartment's rooms under a new name, so the model is left alone */
-          if (!a.unit) { this.note(`${a.name} — plan uploaded, not modelled yet`); return; }
+          if (!a.unit) { this.note(`${a.name} — plan uploaded, waiting to be modelled`); return; }
           this.selectApt(a);
         },
       })),
@@ -726,17 +852,20 @@ class Component extends DCLogic {
         if (!t) return;
         const left = S.apartments.filter(a => a.id !== t.id);
         this.setState({ apartments: left, confirmApt: null });
-        /* deleting the one you were looking at falls back to the top of the
-           list — and the model has to follow, or the rail names one apartment
-           while the canvas draws another */
-        if (S.activeApt === t.id) this.selectApt(left[0]);
+        /* Deleting the one you were looking at falls back to the next entry
+           that HAS a plan behind it — and the model follows, or the rail
+           names one apartment while the canvas draws another. It used to
+           fall back to left[0] unconditionally, which could land on an
+           upload waiting to be modelled. The × above guarantees there is
+           always one modelled entry left to land on. */
+        if (S.activeApt === t.id) this.selectApt(left.find(a => a.unit));
         this.note(`${t.name} deleted`);
       },
       addOpen: S.addOpen, planRef: this.planRef, photoRef: this.photoRef,
       draftName: S.aptDraft.name,
       onAddOpen: () => this.setState({ addOpen: true, aptOpen: false, aptDraft: { name: '', plan: null, photos: [] } }),
-      onAddClose: () => this.setState({ addOpen: false }),
-      onAddBackdrop: () => this.setState({ addOpen: false }),
+      onAddClose: () => this.closeAdd(),
+      onAddBackdrop: () => this.closeAdd(),
       stop: e => e.stopPropagation(),
       onDraftName: e => { const v = e.target.value; this.setState(s => ({ aptDraft: { ...s.aptDraft, name: v } })); },
       onPickPlan: () => this.planRef.current && this.planRef.current.click(),
@@ -767,11 +896,15 @@ class Component extends DCLogic {
         const d = this.state.aptDraft;
         if (!(d.name.trim() && d.plan && d.photos.length >= 3)) return;
         const id = Math.max(0, ...this.state.apartments.map(a => a.id)) + 1;
+        /* the row keeps the file NAMES and the count; the blobs themselves
+           have no further reader once the modal is gone, so they are handed
+           back rather than left pinned for the life of the tab */
+        this.dropDraftPhotos();
         this.setState(s => ({
           apartments: [...s.apartments, { id, name: d.name.trim(), plan: d.plan.name, photos: d.photos.length }],
           addOpen: false, aptDraft: { name: '', plan: null, photos: [] },
         }));
-        this.note(`${d.name.trim()} added — plan and ${d.photos.length} photos`);
+        this.note(`${d.name.trim()} added — pending, not modelled yet`);
       },
       filterBtn: S.filtersOpen ? tOn : tOff,
       filterCount: `${FILTERS.filter(x => S.flags[x[0]]).length}/${FILTERS.length}`,
@@ -829,16 +962,23 @@ class Component extends DCLogic {
           toolsTop: Math.round(Math.min(Math.max(p.y - 14, 46), p.h - 12)) + 'px',
         };
       })(),
-      emptyHint: api.count() ? 'Click a piece to select it.' : 'Nothing placed yet — drag one in from the Add tab.',
+      emptyHint: api.count() ? 'Click a piece to select it.' : 'Nothing placed yet — tap or drag one in from the Add tab.',
       onRot90: () => api.rotate(90),
       onDup: () => sel && api.duplicate(sel.id), onDel: () => sel && api.remove(sel.id),
       onUndo: () => api.undo(),
       onSaveFile: () => api.saveLayoutFile(),
       onPickFile: () => this.fileRef.current && this.fileRef.current.click(),
+      /* A layout file carries C — including which way the plan is handed — so
+         this is a restore like any other and has to re-read the switches. It
+         was the one entry point that skipped afterRestore(), which is why
+         loading an as-drawn layout left the rail highlighting Mirrored and
+         the header showing the square footage from before the load. The
+         loader resolves once the file has been applied; the old fixed 60ms
+         timer used here and below could fire before the read finished. */
       onLoadFile: e => {
         const f = e.target.files && e.target.files[0];
-        if (f) api.loadLayoutFile(f);
         e.target.value = '';
+        if (f) api.loadLayoutFile(f).then(() => this.afterRestore());
       },
       /* the whole shortlist in one document — the copy that outlives the
          browser it was arranged in */
@@ -849,9 +989,8 @@ class Component extends DCLogic {
       onPickProject: () => this.projectRef.current && this.projectRef.current.click(),
       onLoadProject: e => {
         const f = e.target.files && e.target.files[0];
-        if (f) api.loadProjectFile(f);
         e.target.value = '';
-        setTimeout(() => this.afterRestore(), 60);
+        if (f) api.loadProjectFile(f).then(() => this.afterRestore());
       },
       /* linking hands the app a real file; every one of these can fail
          (no support, a preview frame refusing the picker, the user
@@ -900,7 +1039,7 @@ class Component extends DCLogic {
         try { await navigator.clipboard.writeText(api.listText()); this.flash('copyLabel', 'Copied', 'Copy list'); }
         catch (err) { this.flash('copyLabel', 'Copy failed', 'Copy list'); }
       },
-      onReset: () => { api.resetConfig(); this.setState({ draft: {}, area: api.area() }); },
+      onReset: () => { api.resetConfig(); this.setState({ draft: {}, cfgErr: {}, area: api.area() }); },
       onExpOBJ: () => { api.exportOBJ(); this.flash('objLabel', 'Exported', 'Export .obj + .mtl'); },
       onExpGLTF: () => { api.exportGLTF(); this.flash('gltfLabel', 'Exported', 'Export .gltf'); },
       cfgGroups: cfg.map(g => ({ title: g.title, note: g.note, hasNote: !!g.note, rows: this.cfgRows(g.rows) })),
@@ -909,6 +1048,17 @@ class Component extends DCLogic {
       catalog: api.catalog().map(g => ({
         g: g.g, items: g.items.map(it => ({
           ...it,
+          title: `Add ${it.n} — ${it.d}″. Tap to drop it in the ${g.g.toLowerCase()} area, or drag it where you want it.`,
+          /* api.add() runs the room-aware auto-placer, selects the piece,
+             saves and redraws — the whole drop path without a pointer.
+             It was exported and never called: before this the only way into
+             the model was an HTML5 drag, which a touchscreen cannot make. */
+          onAdd: () => { api.add(it.k); this.note(`${it.n} placed — drag it to move it`); },
+          onKey: e => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            e.preventDefault();
+            api.add(it.k); this.note(`${it.n} placed — arrow keys nudge it`);
+          },
           onDragStart: e => {
             this._dragKey = it.k;
             e.dataTransfer.effectAllowed = 'copy';

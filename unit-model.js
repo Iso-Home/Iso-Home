@@ -265,6 +265,43 @@ const ftin = f => {
 const sqf = a => UNITS === 'm' ? (a * 0.09290304).toFixed(1) + ' m²' : Math.round(a) + ' sf';
 const inch = (i, dp) => UNITS === 'm' ? Math.round(i * 25.4) + ' mm'
                                       : (dp == null ? Math.round(i) : i.toFixed(dp)) + '″';
+/* The editable form of a length. Same vocabulary as ftin(), except that a
+   sub-foot number reads as plain inches — an 11″ stair tread said 0′ 11″
+   otherwise, which is not how anyone writes it on a drawing. */
+/* inch() not inches(): main replaced the feet-domain helper with an
+   inches-domain one. Guarded by UNITS above, so in imperial this is the
+   same Math.round(f*12) + '″' it always was. */
+const ftinShort = f => (UNITS === 'm' || Math.abs(f) >= 1) ? ftin(f) : inch(f * 12);
+/* The inverse of ftin(): whatever the app prints, this reads back. The
+   Dimensions editor used to be the one surface still showing raw decimal
+   feet (10.1667) because nothing here could parse anything else.
+
+   ALWAYS returns decimal FEET, whatever was typed and whatever UNITS says,
+   because feet is the only unit C is ever stored in — display converts on
+   the way out and this converts on the way in, so the store never moves.
+   Emitting metres from the editor without this would divide every dimension
+   by 3.28 on the next commit.
+
+   Accepts  10 · 10.5 · 10′ · 10′ 2″ · 10'2 · "10 2" · 26″ · 2 m · 80 cm.
+   A bare number follows UNITS, so metres mode round-trips its own display.
+   Anything else is NaN — the caller says so out loud rather than guessing. */
+const parseLen = s => {
+  if (typeof s === 'number') return isFinite(s) ? s : NaN;
+  const t = String(s).trim().toLowerCase()
+    .replace(/[′’‘]/g, "'").replace(/[″”“]/g, '"').replace(/\s+/g, ' ');
+  let m;
+  if ((m = t.match(/^(\d*\.?\d+) ?(mm|cm|m)$/)))
+    return +m[1] * (m[2] === 'm' ? 1 : m[2] === 'cm' ? .01 : .001) / 0.3048;
+  if ((m = t.match(/^(\d*\.?\d+) ?(?:"|in|ins|inch|inches)$/)))
+    return +m[1] / 12;
+  if ((m = t.match(/^(\d*\.?\d+) ?(?:'|ft|feet|foot)(?: ?(\d*\.?\d+) ?(?:"|in|ins|inch|inches)?)?$/)))
+    return +m[1] + (m[2] ? +m[2] / 12 : 0);
+  if ((m = t.match(/^(\d*\.?\d+) (\d*\.?\d+)$/)))          // "10 2" — feet then inches
+    return +m[1] + +m[2] / 12;
+  if ((m = t.match(/^(\d*\.?\d+)$/)))
+    return UNITS === 'm' ? +m[1] / 0.3048 : +m[1];
+  return NaN;
+};
 
 /* ══ materials ═════════════════════════════════════════════════════ */
 const M = {
@@ -1631,9 +1668,15 @@ const NEAR = 0.06;
    plan passes through tipped angles on its way up, and would otherwise cancel
    itself halfway. */
 const OVERHEAD = 89.5;
+/* Where the camera was standing when Plan was entered, so 3D can put it
+   back. Orbiting out of plan reaches the same exit through leaveOrtho(),
+   and that has to drop the stash — otherwise a later 3D click would
+   teleport the camera away from wherever the user had just orbited to. */
+let orthoFrom = null;
 function leaveOrtho() {
   if (!ORTHO) return;
   ORTHO = false;
+  orthoFrom = null;
   if (opts.onProjection) opts.onProjection(false);
 }
 
@@ -2984,7 +3027,22 @@ function endDrag(ev) {
   if (ev) touches.delete(ev.pointerId);
   if (mode === 'orbit' && !moved && selId !== null) { selId = null; }
   downAt = null;
-  if (touches.size < 2 && mode === 'pinch') mode = null;
+  if (mode === 'pinch' && touches.size < 2) {
+    /* A pinch that drops to one finger HANDS OVER to that finger. mode used
+       to be nulled here, and pointerdown never fires again for a finger
+       that stayed on the glass, so the view was frozen — and the 'grabbing'
+       class left on the canvas — until both fingers were lifted.
+       It re-arms as an orbit even when that finger began by dragging a
+       piece: its drag offset was measured before the zoom and would
+       teleport the piece, so the offset is dropped with the mode. `moved`
+       stays true so the release does not read as a click and deselect. */
+    if (touches.size === 1) {
+      last = downAt = [...touches.values()][0];
+      dragOff = [0,0]; moved = true; mode = 'orbit'; cv.className = 'grabbing';
+      return;
+    }
+    mode = null; cv.className = ''; sync(); draw(); return;   // both lifted at once
+  }
   if (mode) { mode = null; cv.className = ''; sync(); draw(); }
 }
 cv.addEventListener('pointerup', endDrag);
@@ -2992,7 +3050,17 @@ cv.addEventListener('pointercancel', endDrag);
 cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('wheel', ev => {
   ev.preventDefault();
-  cam.dist = clamp(cam.dist * Math.exp(ev.deltaY*0.0011), 9, farZoom(cam.dist));
+  /* deltaY is only meaningful next to deltaMode. Chrome and Safari report
+     PIXELS — about 100 per notch of a wheel mouse — while Firefox reports
+     LINES, 3 per notch, and page mode exists too. Feeding the raw number
+     into the exponent made a line-mode wheel zoom ~35x too weakly: 577
+     notches from the default framing to the near stop instead of 19, which
+     reads as "scroll to zoom is broken" on one browser and fine on the
+     next. The clamp stops one fast trackpad flick crossing the whole
+     9–160 ft range inside a single frame. */
+  const per = ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? VH : 1;
+  const dy = clamp(ev.deltaY * per, -240, 240);
+  cam.dist = clamp(cam.dist * Math.exp(dy*0.0011), 9, farZoom(cam.dist));
   clampEye();            // zooming in lowers the eye just as tilting does
   draw();
 }, { passive:false });
@@ -3672,20 +3740,29 @@ function saveProjectFile() {
   showSaved(`Project written to iso-home.json — ${n} apartment${n === 1 ? '' : 's'}`);
   return doc;
 }
+/* Both file loaders RESOLVE when the document has actually been applied.
+   Reading a file is asynchronous, and the caller has to re-read the model
+   afterwards — the plan may be handed the other way now, the areas may have
+   changed. Guessing at the delay with a timer loses the race on a cold
+   FileReader and silently leaves the toolbar describing the old state. */
 function loadProjectFile(file) {
-  const r = new FileReader();
-  r.onload = () => {
-    let d = null;
-    try { d = JSON.parse(r.result); } catch (e) {}
-    /* a single-apartment layout is a reasonable thing to drop here by
-       mistake — take it rather than refusing, since it is unambiguous */
-    if (d && d.format === 'unit-model-layout') { loadLayoutDoc(d); return; }
-    const res = restoreProject(d);
-    showSaved(res.ok
-      ? `Project restored — ${res.restored.join(', ')}`
-      : res.reason);
-  };
-  r.readAsText(file);
+  return new Promise(resolve => {
+    const r = new FileReader();
+    r.onload = () => {
+      let d = null;
+      try { d = JSON.parse(r.result); } catch (e) {}
+      /* a single-apartment layout is a reasonable thing to drop here by
+         mistake — take it rather than refusing, since it is unambiguous */
+      if (d && d.format === 'unit-model-layout') { loadLayoutDoc(d); resolve(); return; }
+      const res = restoreProject(d);
+      showSaved(res.ok
+        ? `Project restored — ${res.restored.join(', ')}`
+        : res.reason);
+      resolve();
+    };
+    r.onerror = () => { showSaved('That file could not be read'); resolve(); };
+    r.readAsText(file);
+  });
 }
 function loadLayoutDoc(d) {
   if (!d || !Array.isArray(d.items)) { showSaved('That file is not a saved layout'); return; }
@@ -3707,13 +3784,17 @@ function loadLayoutDoc(d) {
   showSaved(`Loaded ${items.length} piece${items.length === 1 ? '' : 's'}`);
 }
 function loadLayoutFile(file) {
-  const r = new FileReader();
-  r.onload = () => {
-    let d = null;
-    try { d = JSON.parse(r.result); } catch(e){}
-    loadLayoutDoc(d);
-  };
-  r.readAsText(file);
+  return new Promise(resolve => {
+    const r = new FileReader();
+    r.onload = () => {
+      let d = null;
+      try { d = JSON.parse(r.result); } catch(e){}
+      loadLayoutDoc(d);
+      resolve();
+    };
+    r.onerror = () => { showSaved('That file could not be read'); resolve(); };
+    r.readAsText(file);
+  });
 }
 /* A real message ("Loaded 3 pieces", "Cleared") outranks the routine "Saved"
    for a couple of seconds — otherwise the debounced autosave fires 250ms
@@ -3820,13 +3901,21 @@ function fitData() {
 
 const API = {
   canvas: cv,
-  draw, resize, ftin,
+  /* ftin prints a length, parseLen reads one back. The editor needs both
+     ends of that, or it cannot show feet and inches without lying. */
+  draw, resize, ftin, parseLen,
   config: () => ({ ...C }),
   /* the config pane is authored per plan: a patio unit has no stair rows
-     and an L-shaped one has a dining bay the other does not */
+     and an L-shaped one has a dining bay the other does not.
+     `value` is the string the editor SHOWS — feet and inches, the same
+     vocabulary as every other surface in the app. It used to hand over
+     +C[k].toFixed(4), so the editor sat eight rows above a derived field
+     reading 10′ 2″ while showing 10.1667 for the same kind of quantity,
+     with no unit named anywhere. `ft` is the number behind it and `def` is
+     the plan's own figure, which is what the editor bounds the field by. */
   configSections: () => U.fields.map(f => ({
     title: f.t, note: f.note || '',
-    rows: f.rows.map(([k, label]) => ({ k, label, value: +C[k].toFixed(4) })),
+    rows: f.rows.map(([k, label]) => ({ k, label, value: ftinShort(C[k]), ft: C[k], def: U.PLAN[k] })),
   })),
   constants: () => U.constants,
   resetLabel: () => U.resetLabel,
@@ -3854,7 +3943,22 @@ const API = {
   },
   mirrored: () => !!C.mirror,
   setWallMode(m) { wallMode = m; draw(); },
-  setOrtho(v) { ORTHO = !!v; if (v) glide({ ...cam, az: 90, el: 90, tz: 0 }); else draw(); },
+  /* 3D and Plan are a pair, so they have to be reversible. Going to Plan
+     lifts the camera straight overhead; coming back used to clear the flag
+     and nothing else, leaving the camera up there — and from directly
+     overhead the only difference between the two projections is the
+     perspective divide, so the model shifted about 3px and the button read
+     as dead. Now the outgoing camera is stashed and glided back to. */
+  setOrtho(v) {
+    if (v) { if (!ORTHO) orthoFrom = { ...cam }; ORTHO = true; glide({ ...cam, az: 90, el: 90, tz: 0 }); return; }
+    if (!ORTHO) { draw(); return; }                // already 3D — nothing to undo
+    ORTHO = false;
+    const back = orthoFrom; orthoFrom = null;
+    /* only when the camera is still where Plan left it: if the user has
+       orbited down since, that is the view they chose — keep it */
+    if (cam.el >= OVERHEAD) glide(back || VIEWS().iso); else draw();
+  },
+  ortho: () => ORTHO,
   goView(k) {
     const v = VIEWS()[k];
     if (v.el < OVERHEAD) leaveOrtho();
@@ -3982,7 +4086,15 @@ const API = {
     if (!PLANS.some(p => p.id === id) || id === U.id) return false;
     selectPlan(id);
     sync(); draw();
-    glide(VIEWS().iso, 1);
+    /* the camera Plan was entered from was framed for the OLD envelope, so
+       it is not the one to come back to — 3D falls back to this plan's iso */
+    orthoFrom = null;
+    /* Reframe for the new envelope WITHOUT changing the projection the user
+       picked — comparing two floor plans is the natural reason to switch.
+       Gliding to the iso while ORTHO was true left the engine drawing an
+       orthographic view from a tipped camera, with nothing telling the
+       toolbar, so the rail highlighted 3D over a plan. */
+    glide(ORTHO ? VIEWS().top : VIEWS().iso, 1);
     return true;
   },
   exportOBJ() { grab(U.id + '.obj', buildOBJ(), 'model/obj'); grab(U.id + '.mtl', buildMTL(), 'model/mtl'); draw(); },
