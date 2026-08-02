@@ -691,9 +691,14 @@ PLANS.push({
     ['Balcony', G.balcony],
   ],
   entryProbe: (C, G) => [C.W - 2.2, G.op.entry[0], C.W - 0.1, G.op.entry[1]],
+  /* the one piece of floor outside the envelope you may still stand furniture
+     on. inBounds() needs this per-plan: it used to read G.balcony directly,
+     which is a key only this plan defines. */
+  outdoor: (C, G) => G.balcony,
   seedRect: (C, G, grp) =>
     grp === 'Bedroom' ? [G.rooms.bedroom[0], G.rooms.bedroom[1], G.rooms.bedroom[2], G.cy]
     : grp === 'Dining' ? G.rooms.dining
+    : grp === 'Balcony' ? G.balcony
     : G.rooms.living,
   keepOut: (C, G) => {
     const m = C.clearMain || 3, e = G.op.entry;
@@ -1240,9 +1245,13 @@ PLANS.push({
   ],
   /* the entry is in the WEST wall, so the threshold is a Y-range */
   entryProbe: (C, G) => [C.livX + 0.1, G.op.entry[0], C.livX + 2.2, G.op.entry[1]],
+  /* this plan's outdoor floor is the patio, not a balcony — see the note on
+     goldridge's `outdoor`. Furniture in the Balcony catalog group seeds here. */
+  outdoor: (C, G) => G.patio,
   seedRect: (C, G, grp) =>
     grp === 'Bedroom' ? G.rooms.bedroom
     : grp === 'Dining' ? G.rooms.dining
+    : grp === 'Balcony' ? G.patio
     : G.rooms.living,
   keepOut: (C, G) => {
     const m = C.clearMain || 3, e = G.op.entry;
@@ -1835,6 +1844,12 @@ const CAT = [
    {k:'tv55',   n:'TV, 55″',        w:48,d: 3,h:28,s:'tv'},
    {k:'tv65',   n:'TV, 65″',        w:57,d: 3,h:33,s:'tv'},
    {k:'shelf',  n:'Bookcase',       w:32,d:12,h:72,s:'case'},
+   /* ── IKEA, measured off the product pages, 2026-08-01. Fractions are the
+         listed sizes converted straight to decimal inches — 46 5/8″ is 46.625,
+         not "about 47". ── */
+   {k:'billy',  n:'BILLY bookcase',  w:31.5,  d:11,     h:41.75,  s:'case'},
+   {k:'eket4',  n:'EKET cabinet, 4 comp', w:27.5, d:13.75, h:27.5, s:'case'},
+   {k:'radcab', n:'RÅDMANSÖ cabinet', w:46.625, d:19.125, h:40.625, s:'case', clr:[0,0,30,0]},
    {k:'lamp',   n:'Floor lamp',     w:16,d:16,h:60,s:'lamp'},
    {k:'rug57',  n:'Rug, 5 × 7',     w:60,d:84, h:1,s:'rug'},
    {k:'rug810', n:'Rug, 8 × 10',    w:96,d:120,h:1,s:'rug'},
@@ -1848,6 +1863,12 @@ const CAT = [
    {k:'dchair', n:'Dining chair',   w:18,d:20,h:34,s:'chair'},
    {k:'stool',  n:'Counter stool',  w:16,d:16,h:26,s:'stool'},
    {k:'sideb',  n:'Sideboard',      w:60,d:18,h:32,s:'case'},
+   /* ── IKEA ── the gateleg is listed as both entries on purpose: a drop-leaf
+         is bought for the folded footprint and lived in at the open one, and
+         the clearance checker can only grade one shape at a time. ── */
+   {k:'alhult',   n:'ÅLHULT table',            w:31.5,   d:29.125, h:29.5, s:'table', clr:[36,36,36,36], rule:'diningChair'},
+   {k:'pinnfold', n:'PINNTORP gateleg, folded', w:26.375, d:29.5,  h:29.5, s:'table', clr:[36,36,36,36], rule:'diningChair'},
+   {k:'pinnopen', n:'PINNTORP gateleg, open',   w:48.875, d:29.5,  h:29.5, s:'table', clr:[36,36,36,36], rule:'diningChair'},
  ]},
  { g:'Bedroom', items:[
    {k:'king',   n:'King bed',   w:76,d:80,h:24,s:'bed', clr:[0,24,30,24], rule:'bed'},
@@ -1859,6 +1880,16 @@ const CAT = [
    {k:'tall',   n:'Tall dresser',w:34,d:18,h:50,s:'case',clr:[0,0,30,0]},
    {k:'ward',   n:'Wardrobe',   w:48,d:24,h:72,s:'case', clr:[0,0,30,0]},
    {k:'bench',  n:'Bed bench',  w:48,d:18,h:18,s:'soft'},
+   /* ── IKEA ── w × d are the frame's own overall size, NOT the mattress:
+         both of these are queens, and both are wider and longer than the
+         generic 60 × 80 above, which is the point of listing them.
+         h stays at the catalog's 24″ mattress-top convention — IKEA does not
+         publish one, since it depends on the mattress you put in. ── */
+   {k:'radbed',   n:'RÅDMANSÖ bed, queen', w:63,     d:87.375, h:24, s:'bed', clr:[0,24,30,24], rule:'bed'},
+   {k:'idanas',   n:'IDANÄS bed, queen',   w:62.625, d:88.25,  h:24, s:'bed', clr:[0,24,30,24], rule:'bed'},
+   {k:'radnight', n:'RÅDMANSÖ nightstand', w:21.25,  d:15.125, h:22.875, s:'case'},
+   {k:'raddres6', n:'RÅDMANSÖ 6-drawer dresser', w:62.625, d:18.875, h:31.875, s:'case', clr:[0,0,30,0]},
+   {k:'raddres5', n:'RÅDMANSÖ 5-drawer chest',   w:27.5,   d:18.875, h:52,     s:'case', clr:[0,0,30,0]},
  ]},
  { g:'Work & other', items:[
    {k:'desk63', n:'Desk, 63″ walnut', w:63,d:31.5,h:29,s:'desk', clr:[0,0,30,0]},
@@ -1871,12 +1902,32 @@ const CAT = [
    {k:'cube',   n:'Storage cubes',w:30,d:15,h:30,s:'case'},
    {k:'bike',   n:'Bike, upright',w:68,d:22,h:42,s:'soft'},
  ]},
+ /* Outdoor. inBounds() already allowed the bump-out; what was missing was
+    anything anyone would put there, and a seedRect case to drop it out there
+    rather than in the living room. Both plans map this group to their own
+    outdoor floor — goldridge's balcony, hazel's patio.
+    The bistro table's clearance is front-and-back only: on a 5′-7½″-deep
+    balcony you pull a chair out along the long axis, never across it. */
+ { g:'Balcony', items:[
+   {k:'tarnotab', n:'TÄRNÖ table',          w:21,    d:21.625, h:27.5, s:'table', clr:[24,0,24,0]},
+   {k:'tarnochr', n:'TÄRNÖ folding chair',  w:15,    d:15.75,  h:31,   s:'chair'},
+   {k:'morum',    n:'MORUM rug, in/outdoor',w:63,    d:91,     h:0.25, s:'rug'},
+   /* one 9-tile pack laid 3 × 3. IKEA quotes 8.72 sq ft a pack; 35¼″ square
+      is 8.63, the difference being the interlocking edges. */
+   {k:'runnen',   n:'RUNNEN decking, 3 × 3',w:35.25, d:35.25,  h:0.75, s:'deck'},
+ ]},
 ];
 const BYKEY = {}; CAT.forEach(g => g.items.forEach(it => BYKEY[it.k] = it));
 
 let items = [], selId = null, nextId = 1;
 const spec = it => BYKEY[it.k];
 const fW = it => spec(it).w/12, fD = it => spec(it).d/12, fH = it => spec(it).h/12;
+/* Floor coverings. Flat, stacked under everything and never on top of it, not
+   counted as furniture coverage, and never in another piece's way. Rugs and
+   deck tiles are identical in all four respects, so every place that used to
+   test `s === 'rug'` asks this instead — adding a third covering means adding
+   it here and nowhere else. */
+const isFloorCover = it => { const s = spec(it).s; return s === 'rug' || s === 'deck'; };
 
 /* ══════════════════════════════════════════════════════════════════
    STACKING
@@ -1895,7 +1946,7 @@ const fW = it => spec(it).w/12, fD = it => spec(it).d/12, fH = it => spec(it).h/
 function restack() {
   const list = items.slice().sort((a, b) => a.id - b.id);
   for (const it of list) {
-    if (spec(it).s === 'rug') { it.z = 0; continue; }
+    if (isFloorCover(it)) { it.z = 0; continue; }
     let z = 0;
     const c = corners(it);
     for (const o of list) {
@@ -2025,6 +2076,9 @@ function buildItem(it) {
       rbox(it,-X,-Y,0,X,Y,h-.08,ck); rbox(it,-X-.04,-Y-.04,h-.08,X+.04,Y+.04,h,wd); break;
     case 'soft': rbox(it,-X,-Y,0,X,Y,h,up); break;
     case 'rug':  rbox(it,-X,-Y,.05,X,Y,.05+h,sel?M.sel:M.rugm); break;
+    /* interlocking deck tiles — same flat slab as a rug, but in the deck
+       colour, and it belongs on the balcony rather than over the oak */
+    case 'deck': rbox(it,-X,-Y,.05,X,Y,.05+h,sel?M.sel:M.deck); break;
     case 'tv':
       rbox(it,-X,-Y,h*.18,X,Y,h,sel?M.sel:M.screen);
       rbox(it,-X*.25,-Y-.35,0,X*.25,Y+.35,h*.18,mt); break;
@@ -2099,7 +2153,11 @@ function overlapsRect(poly, rect) {
 function inBounds(it) {
   const [x0,y0,x1,y1] = bboxOf(it);          // defined below; called at runtime
   if (x0 >= 0 && x1 <= C.W && y0 >= 0 && y1 <= C.D) return true;
-  const [b0,b1,b2,b3] = mRect(G.balcony);
+  /* Was mRect(G.balcony). Only goldridge derives a `balcony`; hazel derives a
+     `patio`, so on that plan this destructured undefined and threw the moment
+     a piece left the envelope. Nothing had reached it before, because until the
+     Balcony catalog group there was no furniture anyone would put out there. */
+  const [b0,b1,b2,b3] = mRect(U.outdoor(C, G));
   return x0 >= b0 && x1 <= b2 && y0 >= b1 && y1 <= b3;
 }
 function placeable(it) {
@@ -2149,7 +2207,7 @@ function clearanceOK(it) {
   const cp = clearPoly(it); if (!cp) return null;
   for (const r of blockers) if (overlapsRect(cp, r)) return false;
   for (const o of items) {
-    if (o.id === it.id || spec(o).s === 'rug' || partnered(it, o) || o.z > 0) continue;
+    if (o.id === it.id || isFloorCover(o) || partnered(it, o) || o.z > 0) continue;
     if (overlapsRect(cp, bboxOf(o))) return false;
   }
   return true;
@@ -2544,18 +2602,32 @@ function homeRect(k) {
 function add(k) {
   pushUndo();
   const it = { id: nextId++, k, x: cam.tx, y: cam.ty, rot: 0 };
-  const h = homeSeed(k);
-  const seed = [clamp(h[0],2,C.W-2), clamp(h[1],2,C.D-2)], cand = [];
+  const h = homeSeed(k), home = homeRect(k);
+  /* The sweep used to cover the envelope alone, and the seed was clamped into
+     it — so a piece whose home is the balcony got pulled indoors before the
+     search even began, and no candidate out on the deck ever existed to find.
+     Sweep the outdoor rect as well, and clamp the seed into the piece's own
+     home rather than into the envelope. Indoor pieces are unaffected: their
+     home is already inside, and the deck sweep only ever adds squares that
+     inBounds() was willing to accept anyway. */
+  const cl = (v, lo, hi) => hi - lo < 2 ? (lo + hi) / 2 : clamp(v, lo + 1, hi - 1);
+  const seed = home ? [cl(h[0], home[0], home[2]), cl(h[1], home[1], home[3])]
+                    : [clamp(h[0], 2, C.W - 2), clamp(h[1], 2, C.D - 2)];
+  const cand = [];
   /* 3" steps: a queen in a 12′ bedroom can clear 24″ both sides by under an
      inch, and a coarser grid simply never lands on it. */
-  for (let x=.5;x<=C.W-.5;x+=.25) for (let y=.5;y<=C.D-.5;y+=.25)
-    cand.push([x,y,(x-seed[0])**2+(y-seed[1])**2]);
+  const sweep = (x0, y0, x1, y1) => {
+    for (let x=x0+.5;x<=x1-.5;x+=.25) for (let y=y0+.5;y<=y1-.5;y+=.25)
+      cand.push([x,y,(x-seed[0])**2+(y-seed[1])**2]);
+  };
+  sweep(0, 0, C.W, C.D);
+  const deck = mRect(U.outdoor(C, G));
+  sweep(deck[0], deck[1], deck[2], deck[3]);
   cand.sort((a,b)=>a[2]-b[2]);
   /* Two passes: prefer somewhere the piece both fits AND keeps its declared
      clearance, so a new bed doesn't land jammed against a wall reporting FAIL.
      Fall back to merely fitting if the plan has no such spot. */
   items.push(it);
-  const home = homeRect(k);
   const inHome = ([x,y]) => !home || (x > home[0] && x < home[2] && y > home[1] && y < home[3]);
   /* 1. somewhere it fits AND keeps its clearance
      2. failing that, somewhere it merely fits INSIDE ITS OWN ROOM — a queen
@@ -2575,28 +2647,41 @@ function add(k) {
      to the same room stacks on the identical square. Rugs are exempt in both
      directions: they belong under the furniture. */
   const clearOfItems = () => {
-    if (spec(it).s === 'rug') return true;
+    if (isFloorCover(it)) return true;
     const p = corners(it);
     for (const o of items) {
-      if (o.id === it.id || spec(o).s === 'rug') continue;
+      if (o.id === it.id || isFloorCover(o)) continue;
       if (overlapsRect(p, bboxOf(o))) return false;
     }
     return true;
   };
   const base = () => fits(it) && clearOfItems();
-  const passes = [
+  const inRoom = [
     ([x,y]) => inHome([x,y]) && base() && clearOfSpine() && clearanceOK(it) !== false,
     ([x,y]) => inHome([x,y]) && base() && clearOfSpine(),
     ([x,y]) => inHome([x,y]) && base(),
+  ];
+  const anywhere = [
     ()      => base() && clearOfSpine() && clearanceOK(it) !== false,
     ()      => base(),
     ()      => fits(it),
   ];
+  /* Every in-room pass square-on, THEN every in-room pass turned 90°, and only
+     then let the piece leave its room. Without the turn anything that fits its
+     room only the long way falls straight through to "anywhere it fits": the
+     balcony rug is 5′-3″ × 7′-7″ on a deck 5′-7½″ deep, so it was landing in
+     the living room. Rotation is tried only after square-on has failed at every
+     candidate in the room, so no placement that succeeds today can move. */
+  const plan = [];
+  for (const rot of [0, 90]) for (const t of inRoom) plan.push([rot, t]);
+  for (const t of anywhere) plan.push([0, t]);
   let placed = false;
-  for (const test of passes) {
+  for (const [rot, test] of plan) {
+    it.rot = rot;
     for (const c of cand) { it.x=c[0]; it.y=c[1]; if (test(c)) { placed = true; break; } }
     if (placed) break;
   }
+  if (!placed) it.rot = 0;
   selId = it.id; save(); sync(); draw();
 }
 function remove(id){
@@ -3153,7 +3238,7 @@ const API = {
     });
   },
   coverage() {
-    const a = items.reduce((s, it) => s + (spec(it).s === 'rug' ? 0 : fW(it) * fD(it)), 0);
+    const a = items.reduce((s, it) => s + (isFloorCover(it) ? 0 : fW(it) * fD(it)), 0);
     /* against NET floor, not the bounding box — an L-shaped plan's box
        includes a notch of outdoors and would understate every percentage */
     const net = areaReport().net || (C.W * C.D);
