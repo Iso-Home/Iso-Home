@@ -144,6 +144,22 @@
     </div>
   </sc-if>
 
+  <!-- Two tabs, one apartment, both with unsaved work. The model has stopped
+       writing until this is answered, so there is no backdrop dismissal: one
+       of the two arrangements is going to lose, and it is not ours to pick. -->
+  <sc-if value="{{ conflictOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; z-index: 41; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(57,62,65,0.34);">
+      <div style="width: 380px; max-width: 100%; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 12px; box-shadow: 0 24px 64px rgba(57,62,65,0.28); padding: 20px 20px 18px;">
+        <h3 style="margin: 0 0 5px; font-family: Futura, 'Century Gothic', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 11px; font-weight: 500; color: #393E41;">Changed in another tab</h3>
+        <p style="font-size: 12.5px; color: #61666A; margin: 0; max-width: 48ch;">{{ conflictBody }}</p>
+        <div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 20px;">
+          <button type="button" onClick="{{ onConflictTheirs }}" style="font: inherit; font-size: 11.5px; color: #61666A; background: #F6F7EB; border: 1px solid #DCDDCB; border-radius: 6px; padding: 5px 11px; cursor: pointer;" style-hover="color:#393E41;border-color:#949A9E">Load the other version</button>
+          <button type="button" onClick="{{ onConflictMine }}" style="font: inherit; font-size: 11.5px; color: #FFFFFF; background: #3F88C5; border: 1px solid #3F88C5; border-radius: 6px; padding: 5px 11px; cursor: pointer;" style-hover="background:#336F9F;border-color:#336F9F">Keep this one</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
   <input type="file" accept="image/*,application/pdf" ref="{{ planRef }}" onChange="{{ onPlanFile }}" style="display: none;" />
   <input type="file" accept="image/*" multiple="{{ true }}" ref="{{ photoRef }}" onChange="{{ onPhotoFiles }}" style="display: none;" />
 
@@ -419,7 +435,7 @@
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;units&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;feet &amp; inches&quot;,&quot;metres&quot;],&quot;default&quot;:&quot;feet &amp; inches&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;},&quot;startWallMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;cut&quot;,&quot;full&quot;],&quot;default&quot;:&quot;cut&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;},&quot;startView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;iso&quot;,&quot;top&quot;,&quot;plan&quot;],&quot;default&quot;:&quot;iso&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;units&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;feet &amp; inches&quot;,&quot;metres&quot;],&quot;default&quot;:&quot;feet &amp; inches&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;},&quot;startWallMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;full&quot;,&quot;cut&quot;],&quot;default&quot;:&quot;full&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;},&quot;startView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;iso&quot;,&quot;top&quot;,&quot;plan&quot;],&quot;default&quot;:&quot;iso&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;}}">
 const FILTERS = [
   ['fix', 'Fixtures'], ['dim', 'Dimensions'], ['lab', 'Room labels'],
   ['grid', 'Foot grid'], ['clr', 'Clearance envelopes'],
@@ -464,7 +480,7 @@ class Component extends DCLogic {
       const p = this.props;
       this.api = window.UnitModel.create(this.canvasRef.current, {
         units: p.units === 'metres' ? 'm' : 'ft',
-        wallMode: p.startWallMode === 'full' ? 'full' : 'cut',
+        wallMode: p.startWallMode === 'cut' ? 'cut' : 'full',
         view: p.startView === 'top' ? 'top' : 'iso',
         ortho: p.startView === 'plan',
         theme: {
@@ -491,7 +507,7 @@ class Component extends DCLogic {
       });
       this.setState({
         ready: true,
-        wall: p.startWallMode === 'full' ? 'full' : 'cut',
+        wall: p.startWallMode === 'cut' ? 'cut' : 'full',
         ortho: p.startView === 'plan',
         theme: {
           '--ink': '#393E41', '--ink-2': '#61666A', '--ink-3': '#949A9E',
@@ -643,14 +659,30 @@ class Component extends DCLogic {
     const tOn = { bg: ACC, fg: '#FFFFFF', bd: ACC }, tOff = { bg: '#EBECDD', fg: INK2, bd: ACC };
     const tab = k => S.tab === k ? { fg: INK, bd: ACC } : { fg: INK3, bd: 'transparent' };
     const STATE_COLOR = { pass: '#44BBA4', tight: '#E94F37', fail: '#C0341F' };
+    /* another tab wrote this apartment while this one had unsaved changes.
+       The model has suspended saving until it is settled, so the choice has
+       to be reachable — a status line that fades after two seconds is not a
+       way to answer it. In `base` so both render paths carry the keys. */
+    const cf = api ? api.conflict() : null;
 
     const base = {
       canvasRef: this.canvasRef, fileRef: this.fileRef, projectRef: this.projectRef,
       status: S.status, statusOpacity: S.fresh ? 1 : 0.4,
+      conflictOpen: !!cf,
+      conflictBody: cf
+        ? `${cf.name} was changed in another tab. That version has ${cf.theirs} piece${cf.theirs === 1 ? '' : 's'}, this one has ${cf.mine}. Nothing is being saved here until you pick one — whichever you leave behind is gone.`
+        : '',
+      onConflictTheirs: () => { if (api) api.resolveConflict('theirs'); },
+      onConflictMine:   () => { if (api) api.resolveConflict('mine'); },
       copyLabel: S.copyLabel, objLabel: S.objLabel, gltfLabel: S.gltfLabel,
       wallCut: S.wall === 'cut' ? on : off, wallFull: S.wall === 'full' ? on : off,
       persp: S.ortho ? off : on, ortho: S.ortho ? on : off,
-      handPlan: S.hand === 'plan' ? on : off, handMirror: S.hand === 'mirror' ? on : off,
+      /* handedness comes from the MODEL, not from S.hand: mirroring now moves
+         the furniture with the plan, which makes it an undoable edit, and an
+         undo that flips it back would leave these two buttons claiming the
+         opposite of what the canvas is drawing */
+      handPlan:   (api ? !api.mirrored() : S.hand === 'plan')   ? on : off,
+      handMirror: (api ?  api.mirrored() : S.hand === 'mirror') ? on : off,
       filtersOpen: S.filtersOpen,
       filtersRef: this.filtersRef,
       headRef: this.headRef, titleRef: this.titleRef, nameRef: this.nameRef, tagRef: this.tagRef,
@@ -923,7 +955,9 @@ class Component extends DCLogic {
       out.hasItems = rows.length > 0;
       out.noItems = rows.length === 0;
       const c = api.coverage();
-      out.coverage = `${c.sf} sf · ${c.pct}%`;
+      /* c.sf now carries its own unit — the engine knows whether it is
+         showing sf or m², this component does not. */
+      out.coverage = `${c.sf} · ${c.pct}%`;
     }
     if (S.tab === 'fit') {
       if (this._fitTick !== S.tick || !this._fit) { this._fit = api.fit(); this._fitTick = S.tick; }
