@@ -673,12 +673,15 @@ PLANS.push({
   rooms: (C, G) => [
     ['Bedroom', G.rooms.bedroom, 1], ['Living', G.rooms.living, 1],
     ['Dining', G.rooms.dining, 1], ['Kitchen', G.rooms.kitchen, 1],
-    ['Bath', G.rooms.bath, 1], ['Vestibule', G.rooms.vest, 0],
+    /* "Hallway", not A-101's "Vestibule" — it is what Mac taped it as, and it
+       matches the two Hallway rows in the Fit tab. Carries its dimensions
+       (the 1) because it is a measured room, not an offcut. */
+    ['Bath', G.rooms.bath, 1], ['Hallway', G.rooms.vest, 1],
     ['W/D', G.rooms.wd, 0], ['Closet', G.rooms.closet, 0],
     ['Coat', G.rooms.coat, 0], ['Storage', G.rooms.storage, 0],
     ['Balcony', G.balcony, 1],
   ],
-  scheduled: ['Living', 'Dining', 'Kitchen', 'Bedroom', 'Bath'],
+  scheduled: ['Living', 'Dining', 'Kitchen', 'Bedroom', 'Bath', 'Hallway'],
   footprint: C => [[0, 0, C.W, C.D]],
   areaExtras: (C, G) => [
     ['Balcony', `${ftin(C.balcW)} × ${ftin(C.balcD)}`, G.balcony],
@@ -1821,8 +1824,14 @@ function drawDims() {
 
   if (!ORTHO) return;
   const d2 = cssv('--ink-3');
-  for (const [n, r] of roomList()) {
-    if (n === 'Balcony') continue;
+  for (const [n, r, big] of roomList()) {
+    /* Skip any room whose label already carries "W × D · sf": these edge
+       strings would print the same two numbers a second time, and in a shallow
+       room they land on top of the label — the hallway is 3′-4″ deep, and the
+       string sits 1′-0″ off the wall against a label centred at 1′-8″. So the
+       edge strings are for the small rooms, which carry no dimensions of their
+       own; the scheduled rooms get theirs from the label. */
+    if (n === 'Balcony' || big) continue;
     seg3([r[0]+.15, r[1]+.5, .02],[r[2]-.15, r[1]+.5, .02], d2, .6, [3,3]);
     seg3([r[0]+.5, r[1]+.15, .02],[r[0]+.5, r[3]-.15, .02], d2, .6, [3,3]);
     text3([(r[0]+r[2])/2, r[1]+1.0, .03], [{ t:ftin(r[2]-r[0]), font:MONO(), color:d2 }]);
