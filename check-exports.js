@@ -36,10 +36,19 @@ async function checkPlan(id, name) {
   const vCount = (obj.match(/^v /gm) || []).length;
   const fCount = (obj.match(/^f /gm) || []).length;
   const oCount = (obj.match(/^o /gm) || []).length;
-  const hasMtllib = /^mtllib /m.test(obj);
-  console.log(`  OBJ : ${vCount} vertices, ${fCount} faces, ${oCount} named objects, mtllib=${hasMtllib}`);
-  if (vCount < 8 || fCount < 6 || oCount < 1 || !hasMtllib) {
+  /* Not just "some mtllib line exists" — that is what this asserted while the
+   * OBJ pointed at apartment.mtl and exportOBJ() wrote <plan>.mtl, so every
+   * export imported with no materials and this test stayed green. The name
+   * has to be the file the exporter actually downloads beside it. */
+  const mtllib = (obj.match(/^mtllib (.+)$/m) || [])[1];
+  const wantMtl = id + '.mtl';                    // exportOBJ(): grab(U.id + '.mtl', …)
+  console.log(`  OBJ : ${vCount} vertices, ${fCount} faces, ${oCount} named objects, mtllib=${mtllib}`);
+  if (vCount < 8 || fCount < 6 || oCount < 1) {
     console.error('  *** OBJ export looks degenerate'); bad++;
+  }
+  if (mtllib !== wantMtl) {
+    console.error(`  *** mtllib is "${mtllib}" but the .mtl is written as "${wantMtl}" — materials will not load`);
+    bad++;
   }
 
   /* ── MTL covers every usemtl ── */
