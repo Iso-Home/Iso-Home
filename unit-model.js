@@ -49,27 +49,39 @@ const planById = id => PLANS.find(p => p.id === id) || PLANS[0];
    coordinate below.
    ══════════════════════════════════════════════════════════════════ */
 const PLAN_A101 = {
-  /* ── MEASURED — off "unit 14 mockup design", sheet A-101, which supersedes
-        the earlier sheet. Confirmed with Mac as drawn in the AS-BUILT handing,
-        so `mirror` is off. The sheet notes these are inferred from a 3D
-        reference and must be field-verified. ── */
-  W:      28,          // interior width,  west→east   · 28′-0″  (29′-4″ exterior)
-  D:      23.5,        // interior depth, north→south  · 23′-6″  (24′-10″ exterior)
+  /* ── FIELD-MEASURED, 2026-08-01. Mac's tape, taken in the unit, and it
+        SUPERSEDES sheet A-101 — the sheet said as much ("inferred from a 3D
+        reference, field-verify"), and it is out by a lot: the drawing is
+        3′-10″ too WIDE and its dining room is more than twice the area of the
+        real one. Depth it gets to within 3″. Room topology is unchanged: the
+        rooms the sheet shows are the rooms that are there, in the same places.
+
+        Numbers marked ▸ are tape. Everything else is still inferred and is
+        what to measure next; the Fit tab lists them.
+
+        Consequence worth keeping in view: at these dimensions the unit is
+        ~562 sf gross, not the 650 sf advertised. ── */
+  W:      24 +  2/12,  // ▸ interior width,  west→east  · 24′-2″  = bedW + 4″ + living
+  D:      23 +  3/12,  // ▸ interior depth, north→south · 23′-3″  = living + dining
   ceiling: 8,
-  bedW:   13,          // bedroom, north-west corner   · 13′-0″
-  bedD:   12,          //   = living-room depth        × 12′-0″
-  bathW:   5,          // bathroom, south-west         ·  5′-0″
-  bathD:   8,          //   = kitchen depth            ×  8′-0″
-  kitW:   10 + 2/12,   // kitchen run length           · 10′-2″
+  bedW:   10 + 11/12,  // ▸ bedroom, north-west corner  · 10′-11″
+  bedD:   10 + 11/12,  // ▸   square                    × 10′-11″
+  livD:   15 +  4/12,  // ▸ living-room depth           · 15′-4″
+  partyD: 11 +  9/12,  // ▸ living/bedroom party wall   · 11′-9″
+  bathW:   5 +  6/12,  //   bathroom width — NOT MEASURED, back-solved from
+                       //   W − 4″ − kitW − dining, so it absorbs the slop
+  bathD:   8 +  4/12,  // ▸   = kitchen depth           ×  8′-4″
+  kitW:    9 + 10/12,  // ▸ kitchen run length          ·  9′-10″
 
   /* ── closets and the north-east bump-out ── */
-  wdW:     2 + 4/12,        // W/D alcove width        ·  2′-4″
-  closW:   8.5,             // bedroom reach-in        ·  8′-6″
-  closD:   2 + 7/12,        //                         ×  2′-7″
-  balcW:  11,               // balcony                 · 11′-0″
-  balcD:   6 + 2/12,        //   deck, wall to rail    ×  6′-2″
-  storW:   2 + 7/12,        // storage off the balcony ·  2′-7″
-  storD:   2 + 7/12,        //   coat closet matches   ×  2′-7″
+  wdW:     2 +  2/12,       //   W/D alcove — NOT MEASURED, set so the
+                            //   vestibule derives to the 8′-9″ hallway Mac taped
+  closW:   6 + 10/12,       // ▸ bedroom reach-in      ·  6′-10″
+  closD:   1 + 11/12,       // ▸                       ×  1′-11″
+  balcW:  10 +  2.5/12,     // ▸ balcony               · 10′-2½″
+  balcD:   5 +  7.5/12,     // ▸   deck, wall to rail  ×  5′-7½″
+  storW:   2 +  7/12,       //   storage off the balcony — NOT MEASURED
+  storD:   2 +  7/12,       //   coat closet matches   — NOT MEASURED
 
   /* ── glazing — the bedroom window is the only confirmed opening ── */
   winX:    1,          // from the west interior face
@@ -104,15 +116,22 @@ const PLAN_A101 = {
 /* ══ derivation ═══════════════════════════════════════════════════
    The tiling identities — what makes the plan re-solve instead of
    leaving orphan strips when a number changes:
-       bedW  = W − westW − wallInt        (the two bands must sum to W)
+       livW  = W − bedW − wallInt         (the two bands must sum to W)
        dinD  = D − livD                   (living stacks on dining)
-       utilD = D − livD − bathD − 2·wallInt   (the W/D band is the remainder)
-       kitD  = bathD + wallInt            (kitchen wall stacks on the bath wall)
+       utilD = D − bedD − bathD − 2·wallInt   (the W/D band is the remainder)
+       kitD  = bathD                      (kitchen shares the bathroom band)
        coatD = balcD − wallExt − wallInt − storD  (closets fill the bump-out)
        bumpW = storW + wallInt + balcW    (bump-out = closets + balcony)
+
+   NOTE, changed 2026-08-01: the living room used to be forced to bedD — the
+   sheet drew the bedroom spanning its whole west side. The tape says
+   otherwise. The bedroom is 10′-11″ deep, the living room 15′-4″, and the
+   difference is the hallway mouth opening off it. So living depth is its own
+   measured field (livD) and dining is what is left below it. Forcing the old
+   identity back would shorten the living room by 4′-5″.
    ══════════════════════════════════════════════════════════════════ */
 function deriveA101(c) {
-  const { W, D, bedW, bedD, bathW, bathD, kitW, wdW, closW, closD,
+  const { W, D, bedW, bedD, livD, bathW, bathD, kitW, wdW, closW, closD,
           balcW, balcD, storW, storD, wallInt: i, wallExt: e } = c;
 
   /* stair — risers divide the storey height as evenly as they can while
@@ -122,11 +141,11 @@ function deriveA101(c) {
   const riser = c.floorToFloor / nRise;
   const run   = (nRise - 1) * c.tread;
 
-  const livW  = W - bedW - i;             // 14′-8″ — living takes what's left
-  const kitD  = bathD;                    //  8′-0″ — kitchen shares the bath band
-  const dinW  = W - bathW - i - kitW;     // 12′-6″
-  const dinD  = D - bedD;                 // 11′-6″
-  const utilD = D - bedD - bathD - 2*i;   //  2′-10″ — the W/D band is the remainder
+  const livW  = W - bedW - i;             // 12′-11″ — living takes what's left
+  const kitD  = bathD;                    //  8′-4″ — kitchen shares the bath band
+  const dinW  = W - bathW - i - kitW;     //  8′-6″
+  const dinD  = D - livD;                 //  7′-11″ — dining is what is left below
+  const utilD = D - bedD - bathD - 2*i;   //  3′-4″ — the W/D band is the remainder
   const coatD = balcD - e - i - storD;    //  2′-7″
   const bumpW = balcW + i + storW;        // 13′-11″
 
@@ -170,7 +189,7 @@ function deriveA101(c) {
     rooms: {
       bedroom: [0, 0, bedW, bedD],
       closet:  [0, cy, closW, bedD],
-      living:  [lx, 0, W, bedD],
+      living:  [lx, 0, W, livD],
       vest:    [wdW, uy0, bedW, uy1],
       wd:      [0, uy0, wdW, uy1],
       bath:    [0, ky, bathW, D],
@@ -202,13 +221,15 @@ function problemsA101(c, g) {
   if (g.livW  <= 8) p.push(`Living width derives to ${ftin(g.livW)} — the bedroom is eating the east side.`);
   if (g.utilD <= 1.5) p.push(`W/D band derives to ${ftin(g.utilD)} — bedroom + bathroom leave no vestibule.`);
   if (g.dinW  <= 5) p.push(`Dining width derives to ${ftin(g.dinW)} — bath + kitchen span the whole south wall.`);
-  if (g.dinD  <= 5) p.push(`Dining depth derives to ${ftin(g.dinD)} — the bedroom band takes the whole plan.`);
+  if (g.dinD  <= 5) p.push(`Dining depth derives to ${ftin(g.dinD)} — the living room takes the whole plan.`);
+  if (c.livD  <= c.bedD) p.push(`Living depth ${ftin(c.livD)} is no deeper than the bedroom — the hallway has no mouth to open off.`);
+  if (c.partyD > c.livD) p.push(`Party wall ${ftin(c.partyD)} is longer than the living room it sits in.`);
   if (g.coatD <= 1) p.push(`Coat closet derives to ${ftin(g.coatD)} — the storage closet fills the bump-out.`);
   if (c.closW >  c.bedW)  p.push('Reach-in closet is wider than the bedroom.');
   if (c.wdW   >  c.bedW)  p.push('W/D alcove is wider than the band it sits in.');
   if (g.balcX <  c.bedW)  p.push('Balcony bump-out overruns the bedroom — it would sit off the living room wall.');
   if (c.winX + c.winW > c.bedW) p.push('Bedroom window runs past the bedroom into the living room.');
-  if (c.entryY + c.doorEntry > c.bedD) p.push('Entry door runs past the living room on the east wall.');
+  if (c.entryY + c.doorEntry > c.livD) p.push('Entry door runs past the living room on the east wall.');
   return p;
 }
 
@@ -234,11 +255,23 @@ const ftin = f => {
   if (i === 12) { ft++; i = 0; }
   return (n?'-':'') + ft + '′' + (i ? ' ' + i + '″' : '');
 };
-const inches = f => Math.round(f * 12) + '″';
+/* ftin() was the only thing that read UNITS, so metric mode used to be half
+   applied: lengths converted while every area kept a literal ' sf' and every
+   stair/aisle/circulation figure kept a literal '″' — the Area tab read
+   "Bedroom | 3.96 m × 3.66 m | 156 sf", which is 14.5 m². These two put the
+   remaining quantities on the same switch. sqf takes SQUARE FEET; inch takes
+   INCHES (most callers already hold inches) and dp is the decimal places to
+   keep in imperial, where a riser is quoted as 7.20″ and an aisle as 46″. */
+const sqf = a => UNITS === 'm' ? (a * 0.09290304).toFixed(1) + ' m²' : Math.round(a) + ' sf';
+const inch = (i, dp) => UNITS === 'm' ? Math.round(i * 25.4) + ' mm'
+                                      : (dp == null ? Math.round(i) : i.toFixed(dp)) + '″';
 /* The editable form of a length. Same vocabulary as ftin(), except that a
    sub-foot number reads as plain inches — an 11″ stair tread said 0′ 11″
    otherwise, which is not how anyone writes it on a drawing. */
-const ftinShort = f => (UNITS === 'm' || Math.abs(f) >= 1) ? ftin(f) : inches(f);
+/* inch() not inches(): main replaced the feet-domain helper with an
+   inches-domain one. Guarded by UNITS above, so in imperial this is the
+   same Math.round(f*12) + '″' it always was. */
+const ftinShort = f => (UNITS === 'm' || Math.abs(f) >= 1) ? ftin(f) : inch(f * 12);
 /* The inverse of ftin(): whatever the app prints, this reads back. The
    Dimensions editor used to be the one surface still showing raw decimal
    feet (10.1667) because nothing here could parse anything else.
@@ -385,9 +418,24 @@ function RMP(x0,x1, y0,y1, zA,zB, t, m) {
 }
 
 /* ══ shell ═════════════════════════════════════════════════════════ */
-let showFixtures = true, wallMode = 'cut', EXPORTING = false;
+/* Walls stand at their real height by default. This used to open in 'cut',
+   which slices them at CUT so you look down into the rooms — but a 4′-6″ stub
+   reads as a model of an apartment rather than as the apartment, and the
+   doll's-house culling below already keeps the near walls out of the way in
+   'full' by ghosting whichever ones are between the eye and the plan. Cutaway
+   is still one click away, and areaReport() still forces 'cut' for its raster
+   regardless of what the view is showing. */
+let showFixtures = true, wallMode = 'full', EXPORTING = false;
 const CUT = 4.5;
-const wallTop = () => wallMode === 'full' ? C.ceiling : Math.min(CUT, C.ceiling - 0.5);
+/* The lower clamp is not cosmetic. Cut walls stop half a foot below the
+   ceiling, so a ceiling of 0.5′ or less put the cut AT or BELOW the floor;
+   wallX/wallY bail on `z1 <= z0` before pushing anything, so every wall
+   vanished — and with them every entry in `blockers` and `wallRects`. Net
+   floor then equalled gross, the Fit tab found no problems, and furniture
+   placed straight through partitions that were no longer there to object.
+   Below a 1′ ceiling this keeps a 6″ stub, which is nonsense either way but
+   is nonsense that still counts as a wall. */
+const wallTop = () => wallMode === 'full' ? C.ceiling : Math.max(0.5, Math.min(CUT, C.ceiling - 0.5));
 
 /* Shared scaffolding. The walls themselves come from the active plan —
    buildShell() only clears the buffers and fixes the emission order, so
@@ -466,8 +514,10 @@ function shellA101(C, G, h) {
   WX(W - storW - i, W+e, -(balcD+e), -balcD, 0, h, [], M.wall);
 
   /* interior partitions — all derived */
-  // bedroom east wall, north wall down to the bedroom's south wall
-  WY(0, uy0, bedW, bedW+i, 0, h, [], M.wall);
+  /* bedroom east wall — the living/bedroom party wall. Taped at 11′-9″, which
+     runs it past the bedroom's south-west corner and on to form the return at
+     the hallway mouth, so it is its own measurement rather than bedD + 4″. */
+  WY(0, C.partyD, bedW, bedW+i, 0, h, [], M.wall);
   // bedroom south wall — the door opens off the vestibule
   WX(-e, bedW+i, bedD, uy0, 0, h, [[op.bedDoor[0], op.bedDoor[1], 0, dh]], M.wall);
   // bedroom reach-in: east end wall, and the bypass head across its north face
@@ -511,16 +561,17 @@ function buildEntryStair() {
           stairX0, stairX1, nbrX, nbrDoorC } = G;
   const rt = 0.12;
 
-  /* the storey below, as a slab edge — without it the stair descends from
-     nothing and the unit reads as sitting on the ground. Perimeter bands
-     only: floors paint before walls and unsorted, so a full-footprint slab
-     would sit in `quads` and cover the floor it is supposed to be under. */
+  /* the storey below — without it the stair descends from nothing and the
+     unit reads as sitting on the ground. This was four perimeter bands, a
+     picture frame with the middle missing, because paint() drew floors first
+     and everything in `quads` after, so a full-footprint slab covered the
+     floor it is supposed to be under. draw() paints what sits below the floor
+     as its own layer now (see the note there), so the slab can be a slab:
+     honest geometry, and one box instead of four in the OBJ and glTF, where
+     the paint order never applied in the first place. */
   GRP = 'structure';
   const t = 1.0, W = C.W, D = C.D;
-  BX(-e, -e, -t, W+e, 0,   -0.02, M.poche);
-  BX(-e,  D, -t, W+e, D+e, -0.02, M.poche);
-  BX(-e,  0, -t, 0,   D,   -0.02, M.poche);
-  BX( W,  0, -t, W+e, D,   -0.02, M.poche);
+  BX(-e, -e, -t, W+e, D+e, -0.02, M.poche);
 
   /* The shared walkway, running the length of the east wall between two doors.
      Decked as three strips around the stairwell, not one slab — the flight
@@ -661,8 +712,8 @@ function fixturesA101(C, G) {
 
 /* ── registry entry ─────────────────────────────────────────────── */
 PLANS.push({
-  id: 'goldridge', rev: 'v3', legacy: true,
-  name: 'Goldridge Apartments', tag: '650 sq ft', sub: 'Sheet A-101 · second storey',
+  id: 'goldridge', rev: 'v4', legacy: true,
+  name: 'Goldridge Apartments', tag: '650 sq ft', sub: 'Field-measured · second storey',
   PLAN: PLAN_A101, derive: deriveA101, problems: problemsA101,
   shell: shellA101, fixtures: fixturesA101,
   handed: true,
@@ -683,6 +734,9 @@ PLANS.push({
     ['Coat closet', `${ftin(C.storW)} × ${ftin(G.coatD)}`, G.rooms.coat],
   ],
   envelope: C => `${ftin(C.W)} × ${ftin(C.D)}`,
+  /* the closet stack at the east end of the bump-out is enclosed but sits
+     outside the envelope, so gross building area has to pick it up */
+  bumpGross: (C, G) => (C.storW + C.wallInt + C.wallExt) * (C.balcD + C.wallExt),
   pad: C => Math.max(2, C.balcD + C.wallExt + 1),
   seal: (C, G, stamp, PAD) => {
     const e = C.wallExt, bo = C.balcD + e;
@@ -699,9 +753,14 @@ PLANS.push({
     ['Balcony', G.balcony],
   ],
   entryProbe: (C, G) => [C.W - 2.2, G.op.entry[0], C.W - 0.1, G.op.entry[1]],
+  /* the one piece of floor outside the envelope you may still stand furniture
+     on. inBounds() needs this per-plan: it used to read G.balcony directly,
+     which is a key only this plan defines. */
+  outdoor: (C, G) => G.balcony,
   seedRect: (C, G, grp) =>
     grp === 'Bedroom' ? [G.rooms.bedroom[0], G.rooms.bedroom[1], G.rooms.bedroom[2], G.cy]
     : grp === 'Dining' ? G.rooms.dining
+    : grp === 'Balcony' ? G.balcony
     : G.rooms.living,
   keepOut: (C, G) => {
     const m = C.clearMain || 3, e = G.op.entry;
@@ -715,8 +774,9 @@ PLANS.push({
   derived: (C, G) => [
     ['Living width', G.livW, 'W − bedW − 4″'],
     ['Dining width', G.dinW, 'W − bathW − 4″ − kitW'],
-    ['Dining depth', G.dinD, 'D − bedD'],
-    ['W/D band depth', G.utilD, 'D − bedD − bathD − 8″'],
+    ['Dining depth', G.dinD, 'D − livD'],
+    ['Hallway depth', G.utilD, 'D − bedD − bathD − 8″'],
+    ['Hallway length', C.bedW - C.wdW, 'bedW − wdW'],
     ['Coat closet depth', G.coatD, 'balcD − 8″ − 4″ − storD'],
     ['Bump-out width', G.bumpW, 'balcW + 4″ + storW'],
     ['Galley aisle', (C.bathD - 2 * C.counterD), 'bathD − 2 × 25″'],
@@ -727,18 +787,47 @@ PLANS.push({
     const aisle = (C.bathD - 2 * C.counterD) * 12;
     const aisleState = aisle < 42 ? 'fail' : aisle > 56 ? 'fail' : aisle > 48 ? 'tight' : 'pass';
     const ri = G.riser * 12, tr = C.tread * 12, blondel = 2 * ri + tr;
+    /* What the tape actually read, in inches, kept so the two hallway numbers
+       can be graded against it — both of them derive, so they are where the
+       accumulated slop in a 23-foot chain of measurements comes out. */
+    const TAPE = { hallD: 38, hallL: 105, livW: 155, dinW: 102 };
+    const resid = (derivedFt, taped) => Math.round(derivedFt * 12 - taped);
+    const slop = n => Math.abs(n) <= 2 ? 'pass' : Math.abs(n) <= 6 ? 'tight' : 'fail';
+    const dHallD = resid(G.utilD, TAPE.hallD), dHallL = resid(C.bedW - C.wdW, TAPE.hallL);
+    const dLivW = resid(G.livW, TAPE.livW), dDinW = resid(G.dinW, TAPE.dinW);
     return [
+      { title: 'Against the tape', rows: [
+        /* W is measured twice over, by two disjoint sets of rooms — bedroom +
+           living across the north, bathroom + kitchen + dining across the
+           south. Both bands derive their spare room from W, so these two rows
+           are how you find out that W itself is wrong. */
+        R('Width closes, north band', `${ftin(G.livW)} living vs ${TAPE.livW}″ taped`, slop(dLivW),
+          `livW = W − bedW − 4″. Off by ${dLivW > 0 ? '+' : ''}${dLivW}″ means W disagrees with the taped bedroom + living room.`),
+        R('Width closes, south band', `${ftin(G.dinW)} dining vs ${TAPE.dinW}″ taped`, slop(dDinW),
+          `dinW = W − bathW − 4″ − kitW. This is the row that moves when a real bathroom measurement goes in: off by ${dDinW > 0 ? '+' : ''}${dDinW}″ means the bathroom and W cannot both be right.`),
+        R('Hallway depth', `${ftin(G.utilD)} vs ${TAPE.hallD}″ taped`, slop(dHallD),
+          `Derives from D − bedD − bathD − 8″, so it collects the error from every reading above it. Out by ${dHallD > 0 ? '+' : ''}${dHallD}″.`),
+        R('Hallway length', `${ftin(C.bedW - C.wdW)} vs ${TAPE.hallL}″ taped`, slop(dHallL),
+          `Derives from bedW − wdW. wdW was set to make this land, so this agreeing proves nothing — it is the W/D alcove that is unverified.`),
+        R('Bathroom', `${ftin(C.bathW)} × ${ftin(C.bathD)}`, 'tight',
+          `Never measured — but not free either. ${ftin(C.bathW)} is the ONLY width at which the south band spans the same W as the taped bedroom + living room, so it is a prediction, not a guess. Measure it: if it comes back near ${ftin(C.bathW)} that independently confirms W from a disjoint set of rooms. If it comes back very different, the two width rows above go red and W is wrong — or the south band holds something unmeasured, a chase or a linen closet.`),
+        R('Balcony clears the bedroom', ftin(G.balcX - C.bedW),
+          G.balcX - C.bedW >= 1 ? 'pass' : G.balcX - C.bedW >= 0 ? 'tight' : 'fail',
+          `The bump-out has to start east of the bedroom's party wall or the balcony would open off the bedroom. At the taped width it clears by ${ftin(G.balcX - C.bedW)} — it used to clear by 2′-0″, so the storage and coat closets are the next thing the tape will move.`),
+      ]},
       { title: 'Built in — from the dimensions', rows: [
-        R('Galley aisle', Math.round(aisle) + '″', aisleState,
-          aisle > 56 ? `Too wide to be a galley. kitD derives to ${ftin(G.kitD)} from bathD + 4″, so the runs end up ${Math.round(aisle)}″ apart — that's a corridor kitchen, not a galley.`
+        R('Galley aisle', inch(aisle), aisleState,
+          aisle > 56 ? `Too wide to be a galley. kitD derives to ${ftin(G.kitD)} from bathD + 4″, so the runs end up ${inch(aisle)} apart — that's a corridor kitchen, not a galley.`
           : aisle < 42 ? `Below the 42″ rule — two people cannot pass, and an open oven door blocks the opposite run. A-101 draws the kitchen ${ftin(G.kitD)} deep with counters on both long walls.` : ''),
       ]},
       { title: `Entry stair — ${G.nRise} risers`, rows: [
-        R('Riser height', ri.toFixed(2) + '″', ri <= 7.75 ? (ri <= 7.25 ? 'pass' : 'tight') : 'fail',
+        /* the thresholds and the prose stay in inches — they quote the code,
+           which is written in inches — but the measured value follows UNITS */
+        R('Riser height', inch(ri, 2), ri <= 7.75 ? (ri <= 7.25 ? 'pass' : 'tight') : 'fail',
           ri > 7.75 ? 'Over the 7¾″ maximum. Add a riser, or drop the floor height.' : ''),
-        R('Tread depth', tr.toFixed(2) + '″', tr >= 11 ? 'pass' : tr >= 10 ? 'tight' : 'fail',
+        R('Tread depth', inch(tr, 2), tr >= 11 ? 'pass' : tr >= 10 ? 'tight' : 'fail',
           tr < 10 ? 'Under the 10″ minimum tread.' : ''),
-        R('2 × riser + tread', blondel.toFixed(1) + '″',
+        R('2 × riser + tread', inch(blondel, 1),
           blondel >= 24 && blondel <= 25 ? 'pass' : blondel >= 22 && blondel <= 26 ? 'tight' : 'fail',
           (blondel < 22 || blondel > 26) ? 'Outside 24–25″. The flight will not walk at a natural stride.' : ''),
         R('Flight fits the walkway', `${ftin(G.run)} of ${ftin(G.landY1 - G.landY0)}`,
@@ -754,16 +843,23 @@ PLANS.push({
       ]},
     ];
   },
-  areaNote: (C, G, A) => `A-101 states 650 sf interior, but its own room schedule sums to 630 sf — it leaves out the ~30 sf vestibule. Measured off the drawn envelope the unit is ${A.gross.toFixed(0)} sf gross and ${A.net.toFixed(0)} sf net of partitions, so 650 sits between the two.`,
-  resetLabel: 'A-101',
+  areaNote: (C, G, A) => `The listed 650 sf is a GROSS BUILDING figure and the tape agrees with it: measured to the outside face of the exterior walls, and picking up the closet stack in the bump-out, this plan is ${A.grossExt.toFixed(0)} sf — within ${Math.abs(650 - A.grossExt).toFixed(0)} sf of the listing. Nothing is missing. Inside those walls you get ${A.gross.toFixed(0)} sf of interior and ${A.net.toFixed(0)} sf of actual floor, because ${(A.grossExt - A.net).toFixed(0)} sf of the 650 is wall: ${(2*(C.W + C.D)*C.wallExt + 4*C.wallExt*C.wallExt).toFixed(0)} sf of 8″ exterior envelope, ${(A.gross - A.net).toFixed(0)} sf of partitions, and the bump-out closets. A small unit has a lot of perimeter for its area, so that ratio is normal — but furniture goes in the ${A.net.toFixed(0)} sf, which is the number to shop against.`,
+  resetLabel: 'the tape survey',
   constants: `Near-certain in US residential. Interior partitions 4″, exterior 8″. Interior doors 32″×80″, entry and bedroom 36″×80″, bypass/bifold 30″. Counters 36″ high × 25″ deep, uppers at 54″.`,
   fields: [
-    { t: 'Envelope & rooms — from A-101',
-      note: `Every wall derives from these. Change one and the whole plan re-solves. Read off sheet A-101, which says they are inferred from a 3D reference and must be field-verified.`,
+    { t: 'Envelope & rooms — field-measured',
+      note: `Tape survey of 2026-08-01, which supersedes sheet A-101. W and D are not
+             independent readings: W is bedW + 4″ + the living-room width, D is the living
+             room plus the dining room. Measure the two overall runs directly and these are
+             the first numbers to correct. bathW is the one room here nobody has measured.`,
       rows: [['W','Interior width'], ['D','Interior depth'], ['ceiling','Ceiling height'],
-             ['bedW','Bedroom width'], ['bedD','Bedroom + living depth'],
-             ['bathW','Bathroom width'], ['bathD','Bath + kitchen depth'], ['kitW','Kitchen run']] },
+             ['bedW','Bedroom width'], ['bedD','Bedroom depth'],
+             ['livD','Living-room depth'], ['partyD','Living/bedroom wall'],
+             ['bathW','Bathroom width — unmeasured'], ['bathD','Bath + kitchen depth'],
+             ['kitW','Kitchen run']] },
     { t: 'Closets & balcony',
+      note: `The reach-in and the balcony are taped. The W/D alcove is set so the hallway
+             derives to the 8′-9″ measured; the two bump-out closets are still off the sheet.`,
       rows: [['wdW','W/D alcove width'], ['closW','Reach-in width'], ['closD','Reach-in depth'],
              ['balcW','Balcony width'], ['balcD','Balcony depth'],
              ['storW','Storage width'], ['storD','Storage depth'],
@@ -1192,6 +1288,8 @@ PLANS.push({
     ['Bedroom closet', `${ftin(C.cl2W)} × ${ftin(G.hallD)}`, G.rooms.closet],
   ],
   envelope: (C, G) => `${ftin(C.W)} × ${ftin(C.D)} less the ${ftin(C.livX)} × ${ftin(G.dy)} notch`,
+  /* storage closet off the patio — enclosed, outside the envelope */
+  bumpGross: (C, G) => (C.storW + C.wallInt + C.wallExt) * (C.patD + C.wallExt),
   pad: C => Math.max(2, C.patD + 2*C.wallExt + 1),
   seal: (C, G, stamp, PAD) => {
     const e = C.wallExt, bo = C.patD + 2*e;
@@ -1211,9 +1309,13 @@ PLANS.push({
   ],
   /* the entry is in the WEST wall, so the threshold is a Y-range */
   entryProbe: (C, G) => [C.livX + 0.1, G.op.entry[0], C.livX + 2.2, G.op.entry[1]],
+  /* this plan's outdoor floor is the patio, not a balcony — see the note on
+     goldridge's `outdoor`. Furniture in the Balcony catalog group seeds here. */
+  outdoor: (C, G) => G.patio,
   seedRect: (C, G, grp) =>
     grp === 'Bedroom' ? G.rooms.bedroom
     : grp === 'Dining' ? G.rooms.dining
+    : grp === 'Balcony' ? G.patio
     : G.rooms.living,
   keepOut: (C, G) => {
     const m = C.clearMain || 3, e = G.op.entry;
@@ -1244,7 +1346,7 @@ PLANS.push({
         /* a U-kitchen's working aisle is the gap between the two facing
            runs; here that is the east run against the partition and the
            peninsula */
-        R('Kitchen aisle', Math.round(aisle) + '″',
+        R('Kitchen aisle', inch(aisle),
           aisle < 36 ? 'fail' : aisle < 42 ? 'tight' : aisle > 60 ? 'tight' : 'pass',
           aisle < 42 ? 'Under the 42″ a U-kitchen wants between facing runs — the dishwasher and the oven cannot both be open.' : ''),
         R('Bedroom door in the hall', ftin(brDoor),
@@ -1266,7 +1368,7 @@ PLANS.push({
       ]},
     ];
   },
-  areaNote: (C, G, A) => `The listing states 616 sf. The drawing carries no dimension strings, so the scale came from the drawing itself — wall centrelines fit at ~35.4 px/ft, which independently makes the bedroom the 10′-1″ its own callout claims and the walls 7.6″ / 4.2″. At that scale the drawn envelope is ${A.gross.toFixed(0)} sf gross and ${A.net.toFixed(0)} sf net of partitions, so 616 sits between the two, which is how a listing quotes it. The room callouts are usable-area figures, not wall-to-wall: the living room's “9′-3″ × 12′-7″” is the north part of a band this model draws ${ftin(G.partX - C.livX)} × ${ftin(G.ky)}.`,
+  areaNote: (C, G, A) => `The listing states 616 sf. The drawing carries no dimension strings, so the scale came from the drawing itself — wall centrelines fit at ~35.4 px/ft, which independently makes the bedroom the 10′-1″ its own callout claims and the walls 7.6″ / 4.2″. At that scale the drawn envelope is ${A.gross.toFixed(0)} sf gross and ${A.net.toFixed(0)} sf net of partitions, so 616 sits between the two — this listing quotes INTERIOR, unlike Goldridge's 650, which is a gross-building figure. The two shortlist entries are not measured on the same basis; compare them on net floor, not on their headline numbers. The room callouts are usable-area figures, not wall-to-wall: the living room's “9′-3″ × 12′-7″” is the north part of a band this model draws ${ftin(G.partX - C.livX)} × ${ftin(G.ky)}.`,
   resetLabel: 'the leasing plan',
   constants: `Scaled off the drawing at 35.6 px/ft: exterior walls 7.6″, partitions 4.2″ —
      modelled at 8″ and 4″. Doors scale to 22–31″ on the sheet, which is narrower than any
@@ -1357,11 +1459,23 @@ function buildOBJ() {
     faces.push([key, list]);
   }
   const n = v => v.toFixed(5).replace(/\.?0+$/, '') || '0';
+  /* Gross is the sum of the FOOTPRINT rects, not C.W × C.D. The bounding box
+     of an L-shaped plan swallows the notch of outdoors beside it, so Hazel
+     exported as 692 sf while the app's own Area tab said 624 — areaReport()
+     masks by the same footprint (see its comment at "masked by the FOOTPRINT").
+     Computed inline rather than by calling areaReport(), which flips
+     showFixtures/wallMode and rebuilds the shell twice mid-export. */
+  const gross = U.footprint(C, G).reduce((s, r) => s + (r[2]-r[0])*(r[3]-r[1]), 0);
   const out = [
-    `# ${Math.round(C.W*C.D)} sq ft gross · one-bedroom unit, sheet A-101`,
+    /* was the fixed "one-bedroom unit, sheet A-101" — A-101 is Goldridge's
+       drawing, so a Hazel export cited the wrong apartment's sheet */
+    `# ${sqf(gross)} gross · ${U.name} · ${U.sub}`,
     `# interior ${ftin(C.W)} × ${ftin(C.D)}, ceiling ${ftin(C.ceiling)}`,
     '# axes: X east, Y up, Z south · units: metres',
-    'mtllib apartment.mtl', ''];
+    /* must name the file exportOBJ() actually writes. This said the literal
+       "apartment.mtl" while the download was `${U.id}.mtl`, so no viewer ever
+       found the materials and every model imported as flat default grey. */
+    `mtllib ${U.id}.mtl`, ''];
   for (const p of V) out.push(`v ${n(p[0]*FT_M)} ${n(p[2]*FT_M)} ${n(p[1]*FT_M)}`);
   out.push('');
   for (const [key, list] of faces) {
@@ -1372,7 +1486,7 @@ function buildOBJ() {
   return out.join('\n');
 }
 function buildMTL() {
-  const out = ['# materials for apartment.obj'];
+  const out = [`# materials for ${U.id}.obj`];   // same rename as mtllib, above
   for (const [k, m] of Object.entries(M)) {
     const [r,g,b] = m.c.map(v => (v/255).toFixed(4));
     out.push(`newmtl ${k}`, 'Ka 0.0000 0.0000 0.0000', `Kd ${r} ${g} ${b}`,
@@ -1447,7 +1561,8 @@ function buildGLTF() {
 
   return JSON.stringify({
     asset:{ version:'2.0',
-      generator:`Parametric unit model — sheet A-101, interior ${ftin(C.W)} × ${ftin(C.D)}` },
+      /* named the plan, not the hard-coded sheet — see buildOBJ's header */
+      generator:`Iso Home parametric unit model — ${U.name} · ${U.sub}, interior ${ftin(C.W)} × ${ftin(C.D)}` },
     scene:0, scenes:[{ name:'Unit', nodes: nodes.map((_,i) => i) }],
     nodes, meshes, materials, accessors, bufferViews,
     buffers:[{ byteLength: total, uri: 'data:application/octet-stream;base64,' + b64(buf) }],
@@ -1464,13 +1579,81 @@ function buildGLTF() {
 /* The iso looks from the north-east so the balcony and the entry stair —
    which are on those two faces — are both in the foreground. Top view keeps
    az 90° so the plan reads like the sheet: east right, north up. */
-/* framing follows the envelope, so a plan of a different size still lands
-   in shot — the numbers used to be tuned to one unit's 28′ × 23′-6″ */
+/* ══ framing ═══════════════════════════════════════════════════════
+   The distances used to be a multiple of max(W, D) with hand-tuned target
+   offsets (+1, −2.75, −4.25). Two things were wrong with that. It reads no
+   part of the viewport, and SC below is derived from VH alone, so cam.fov
+   is the VERTICAL field of view and the horizontal one narrows with the
+   panel: in a tall narrow pane a wide plan simply ran off the sides — at
+   627×732 the west end of goldridge sat 25 px outside the canvas in Top.
+   And the offsets were fitted to one unit's 28′ × 23′-6″.
+
+   So frame from geometry instead. frameBox() is what a view must get on
+   screen and fitDist() solves for the distance that does it on BOTH axes.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* The envelope plus whatever the plan hangs off it — balcony, patio, and
+   the closets in the bump-out, all of which roomList() already reports in
+   world coordinates (mirrored plans included). The shared walkway, the
+   entry flight and the neighbour stub are deliberately NOT in here: they
+   are context, they reach 8′ past the east wall, and framing for them
+   would shrink the unit itself to make room for someone else's building. */
+function frameBox() {
+  const W = C.W || 28, D = C.D || 23.5;
+  const b = { x0:0, y0:0, x1:W, y1:D, z1: C.ceiling || 8 };
+  if (U) for (const [, r] of roomList()) {
+    if (r[0] < b.x0) b.x0 = r[0];   if (r[1] < b.y0) b.y0 = r[1];
+    if (r[2] > b.x1) b.x1 = r[2];   if (r[3] > b.y1) b.y1 = r[3];
+  }
+  return b;
+}
+
+/* The same basis as basis(), for an (az, el) the camera has not moved to
+   yet — f is exactly the reverse of the target→eye direction, so it can be
+   written down rather than recovered by normalising a subtraction. */
+function basisAt(az, el) {
+  const ce = Math.cos(RAD(el)), se = Math.sin(RAD(el));
+  const f = [-ce*Math.cos(RAD(az)), -ce*Math.sin(RAD(az)), -se];
+  const r = norm(cross(f,[0,0,1]));
+  return { f, r, u: cross(r,f) };
+}
+
+/* How far back the eye must sit, looking from (az, el) at (tx, ty, tz), for
+   every corner of `b` to land inside the canvas with FIT of it to spare.
+
+   Camera space is [dot(v,r), dot(v,u), dot(v,f)] and f runs from the eye
+   toward the target, so a corner P resolves to (a, h, c + dist) where a/h/c
+   are P−target on that same basis — moving the eye back only ever adds to
+   the depth term. toScreen divides by that depth and scales by SC, so
+   |SC·a/(c+dist)| ≤ halfWidth rearranges to dist ≥ SC·|a|/halfWidth − c.
+   One division per corner, no search. Ortho drops the −c: it ignores depth,
+   so the box's height above the floor costs it nothing.
+
+   VW/VH are still 0 the first time this runs (selectPlan frames the plan
+   before resize() has measured the canvas); assume the default panel then,
+   and resize() rescales to the real one the moment it knows it. */
+const FIT = 0.92;
+function fitDist(b, az, el, tx, ty, tz) {
+  const vw = VW || 960, vh = VH || 680;
+  const sc = (vh/2) / Math.tan(RAD(cam.fov)/2);
+  const kx = sc / (vw/2 * FIT), ky = sc / (vh/2 * FIT);
+  const { f, r, u } = basisAt(az, el);
+  let need = 0;
+  for (const x of [b.x0, b.x1]) for (const y of [b.y0, b.y1]) for (const z of [0, b.z1]) {
+    const v = [x - tx, y - ty, z - tz];
+    const c = ORTHO ? 0 : dot(v, f);
+    need = Math.max(need, Math.abs(dot(v,r))*kx - c, Math.abs(dot(v,u))*ky - c);
+  }
+  return Math.max(need, 4);
+}
+
+/* Both views now centre on that box and stand back far enough to hold it. */
 const VIEWS = () => {
-  const s = Math.max(C.W || 28, C.D || 23.5), cx = (C.W || 28)/2 + 1;
+  const b = frameBox(), cx = (b.x0 + b.x1)/2, cy = (b.y0 + b.y1)/2;
+  const iaz = C.mirror ? 150 : 32;
   return {
-    iso: { az: C.mirror ? 150 : 32, el:34, dist: s*2.15, tx: cx, ty: (C.D || 23.5)/2 - 2.75, tz:-1.0 },
-    top: { az: 90, el:90, dist: s*2.07, tx: cx, ty: (C.D || 23.5)/2 - 4.25, tz:0 },
+    iso: { az: iaz, el:34, dist: fitDist(b, iaz, 34, cx, cy, -1.0), tx: cx, ty: cy, tz:-1.0 },
+    top: { az: 90,  el:90, dist: fitDist(b, 90,  90, cx, cy,  0.0), tx: cx, ty: cy, tz: 0.0 },
   };
 };
 const cam = { az:32, el:34, dist:60, tx:15, ty:9, tz:-1.0, fov:36 };
@@ -1507,10 +1690,32 @@ function eye() {
           cam.tz + d*se];
 }
 function basis() {
-  const e = eye();
-  const f = norm(sub([cam.tx,cam.ty,cam.tz], e));
-  const r = norm(cross(f,[0,0,1]));
-  return { e, f, r, u: cross(r,f) };
+  return Object.assign({ e: eye() }, basisAt(cam.az, cam.el));
+}
+
+/* Floors are single-sided quads with a +Z normal, so paint()'s backface test
+   — dot(n, v0 − eye) ≥ 0 — reduces to −eye.z for every one of them: the whole
+   floor disappears the instant the eye reaches the slab, and you look straight
+   through the hole at the storey-below slab and the entry flight. The iso
+   ships tz = −1, so eye.z = cam.tz + cam.dist·sin(el) goes negative whenever
+   cam.dist·sin(el) < 1, which a drag to the bottom of the 4° tilt stop plus a
+   zoom to the 9 ft stop reaches easily (eye.z = −0.37, 1 of 10 floor quads
+   left, 17% of the frame the slab below).
+
+   Two-sided floors would be the wrong cure: down there the camera genuinely
+   IS under the slab, and the balcony deck box and the raised tile insets share
+   floorQuads, so it would flip their shading too. Keep the eye above the floor
+   instead. At ordinary zoom this costs nothing — at 60 ft it asks for 1.3° of
+   tilt, well inside the existing 4° stop; at the 9 ft stop it lifts the tilt
+   floor to 8.6°, which is exactly where the artefact started. ORTHO stands the
+   eye 400 ft further back so it is never at risk; using cam.dist here only ever
+   over-asks, and an orbit leaves ortho before the tilt gets near this anyway. */
+const MINEYE = 0.35;
+function clampEye() {
+  const need = (MINEYE - cam.tz) / cam.dist;          // sine of the tilt wanted
+  /* need ≥ 1 would mean no tilt clears the slab — unreachable, the zoom stops
+     at 9 ft and tz never drops below −1, so need tops out at 0.15. */
+  if (need < 1) cam.el = Math.max(cam.el, Math.asin(need) * 180 / Math.PI);
 }
 
 const cv = canvas;
@@ -1519,10 +1724,21 @@ let VW=0, VH=0, SC=1, B = basis();
 
 function resize() {
   const dpr = Math.min(devicePixelRatio || 1, 2), r = cv.getBoundingClientRect();
+  /* What the plan needed in the viewport we are LEAVING. The ResizeObserver
+     used to fire straight into draw(), so narrowing the window clipped the
+     plan and nothing brought it back except pressing a view button. */
+  const box = frameBox();
+  const was = fitDist(box, cam.az, cam.el, cam.tx, cam.ty, cam.tz);
   VW = Math.max(1, Math.round(r.width)); VH = Math.max(1, Math.round(r.height));
   cv.width = VW*dpr; cv.height = VH*dpr;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   if (GL) { glcv.width = VW*dpr; glcv.height = VH*dpr; GL.viewport(0,0,glcv.width,glcv.height); }
+  /* Scale by the ratio rather than snapping to the new fit: a resize should
+     not undo the user's zoom, only preserve how much of the plan they had.
+     On the very first call `was` is the 960×680 assumption fitDist() makes
+     while VW/VH are 0, so this is also what corrects the opening framing. */
+  const now = fitDist(box, cam.az, cam.el, cam.tx, cam.ty, cam.tz);
+  if (was > 0 && now > 0) cam.dist *= now / was;
   draw();
 }
 
@@ -1689,6 +1905,13 @@ function glEnd() {
   }
 }
 
+/* At or below the finished floor: the storey-below slab, the walkway deck and
+   the descending flight. Read off the geometry rather than the group name, so
+   a plan that builds something new down there is layered without being told. */
+function underFloor(q) {
+  for (const v of q.v) if (v[2] > 0.001) return false;
+  return true;
+}
 function paint(list, sort) {
   if (GL) {                                  // depth-buffered: order is irrelevant
     for (const q of list) {
@@ -1760,36 +1983,179 @@ function roomList() {
 }
 /* the five rooms A-101 schedules — used for the area table */
 const scheduled = () => U.scheduled;
+
+/* ══ where a room name may legibly sit ═════════════════════════════
+   Labels are painted on the 2D canvas, which sits above everything paint()
+   drew, and text3()'s only test is the near plane. So a room name used to
+   land wherever its centroid happened to project — on top of whatever solid
+   was in front of the room it names. In the default iso that is 9 of the 11
+   anchors, and BATH, VESTIBULE and W/D all print on the kitchen casework:
+   "BATH 5′-0″ × 8′-0″ · 40 sf" written across the kitchen counter names the
+   wrong room, and nothing in the frame says otherwise.
+
+   The test is NOT "can you see this room's floor". In Plan a washer fills
+   its closet completely, and W/D printed over the washer still names the
+   right room. The test is "does the surface under this text belong to this
+   room" — so cast the anchor, take the nearest face, and ask where its
+   footprint lands. If it is not this room's, walk the room for a point where
+   it is; if the room has no such point on screen at all, drop the label
+   rather than print it on someone else's counter.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Every face paint() would draw, projected once, carrying the screen bounding
+   box that makes a point test four comparisons for all but the handful of
+   faces genuinely over it. Rebuilt per frame, because the camera moves. */
+function occluders() {
+  const out = [];
+  for (const list of [floorQuads, quads]) for (const q of list) {
+    if (dot(q.n, sub(q.v[0], B.e)) >= 0) continue;      // backface, as paint()
+    const cp = clipNear(q.v.map(toCam));
+    if (cp.length < 3) continue;
+    const pts = cp.map(toScreen);
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const p of pts) {
+      if (p[0] < x0) x0 = p[0];   if (p[0] > x1) x1 = p[0];
+      if (p[1] < y0) y0 = p[1];   if (p[1] > y1) y1 = p[1];
+    }
+    out.push({ pts, x0, y0, x1, y1, n: q.n, d: dot(q.n, q.v[0]) });
+  }
+  return out;
+}
+function inPoly(s, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const yi = pts[i][1], yj = pts[j][1];
+    if ((yi > s[1]) !== (yj > s[1]) &&
+        s[0] < (pts[j][0]-pts[i][0]) * (s[1]-yi) / (yj-yi) + pts[i][0]) inside = !inside;
+  }
+  return inside;
+}
+/* the world point of the nearest face under screen point s, along the ray
+   that reaches world point p — i.e. the pixel the overlay would cover */
+function underPoint(p, s, occ) {
+  const e = B.e, dx = p[0]-e[0], dy = p[1]-e[1], dz = p[2]-e[2];
+  let bt = Infinity;
+  for (const o of occ) {
+    if (s[0] < o.x0 || s[0] > o.x1 || s[1] < o.y0 || s[1] > o.y1) continue;
+    const den = o.n[0]*dx + o.n[1]*dy + o.n[2]*dz;
+    if (Math.abs(den) < 1e-12) continue;
+    const t = (o.d - dot(o.n, e)) / den;
+    if (t <= 1e-4 || t >= bt) continue;
+    if (inPoly(s, o.pts)) bt = t;
+  }
+  return bt === Infinity ? null : [e[0]+dx*bt, e[1]+dy*bt, e[2]+dz*bt];
+}
+/* A hair of tolerance, no more: interior partitions are 4″, so anything
+   wider would let the kitchen's cabinet fronts count as the vestibule's.
+   This is only here so a guard or jamb standing exactly on the room line
+   does not fail on floating point. */
+const LABTOL = 0.05;
+function ownPoint(r, occ) {
+  const cx = (r[0]+r[2])/2, cy = (r[1]+r[3])/2, N = 11, grid = [];
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+    const x = r[0] + (r[2]-r[0])*(i+0.5)/N, y = r[1] + (r[3]-r[1])*(j+0.5)/N;
+    grid.push([x, y, (x-cx)*(x-cx) + (y-cy)*(y-cy)]);
+  }
+  /* N odd, so the middle sample IS the centroid — a room that reads fine is
+     answered by the first probe and its label does not move at all */
+  grid.sort((a, b) => a[2] - b[2]);
+  for (const g of grid) {
+    const p = [g[0], g[1], .02], c = toCam(p);
+    if (c[2] < NEAR) continue;
+    const s = toScreen(c);
+    if (s[0] < 0 || s[0] > VW || s[1] < 0 || s[1] > VH) continue;   // off canvas
+    const u = underPoint(p, s, occ);
+    if (u && u[0] >= r[0]-LABTOL && u[0] <= r[2]+LABTOL
+          && u[1] >= r[1]-LABTOL && u[1] <= r[3]+LABTOL) return p;
+  }
+  return null;
+}
+
 function drawLabels() {
-  const ink = cssv('--ink'), dim = cssv('--ink-3');
+  const ink = cssv('--ink'), dim = cssv('--ink-3'), occ = occluders();
   for (const [n, r, big] of roomList()) {
+    const at = ownPoint(r, occ);
+    if (!at) continue;                       // no part of this room reads
     const w = r[2]-r[0], d = r[3]-r[1];
     const lines = [{ t:n.toUpperCase(), font:DISP(), color:ink }];
-    if (big) lines.push({ t:`${ftin(w)} × ${ftin(d)} · ${Math.round(w*d)} sf`, font:MONO(), color:dim });
+    if (big) lines.push({ t:`${ftin(w)} × ${ftin(d)} · ${sqf(w*d)}`, font:MONO(), color:dim });
     ctx.save(); ctx.letterSpacing = '1.4px';
-    text3([(r[0]+r[2])/2, (r[1]+r[3])/2, .02], lines);
+    text3(at, lines);
     ctx.restore();
   }
 }
+/* Which side of the unit the depth dimension stands on. It used to be hard
+   coded east at C.W + off, which on goldridge is x = 31.20′ — INSIDE the
+   shared walkway, whose deck runs 28.67′..36.17′, with the "23′-6″" string
+   landing over the open stairwell. 40 of 61 points along that line are behind
+   the landing guard and stroked on top of it, so the dimension reads as
+   measuring the walkway rather than the unit.
+
+   West is not a fix on its own: mirror the plan and the walkway swaps sides
+   with it (it decks −8.17′..−0.65′ then). Nor is standing outboard of the
+   walkway — x = 40.87′ projects clean off the canvas at 960×680. So ask the
+   geometry which face has nothing built past it, and stand there. A tie keeps
+   the east, which is where a plan with no outbuilding has always drawn it.
+   The neighbour stub is skipped: it is culled by camera angle, and an orbit
+   must not make the dimension jump sides. The test is deliberately about the
+   line's own x, not about which side has more built on it — both plans carry
+   the exterior wall 8″ past the envelope on both faces, and a comparison
+   would have flipped hazel on nothing but floating point. */
+function dimWest(off) {
+  let lo = 0, hi = C.W;
+  for (const list of [floorQuads, quads]) for (const q of list) {
+    if (q.g === 'neighbour') continue;
+    for (const v of q.v) { if (v[0] < lo) lo = v[0]; if (v[0] > hi) hi = v[0]; }
+  }
+  return hi > C.W + off && lo > -off;      // east is built over, west is not
+}
+
 /* per-wall dimensions: overall always, per-room in plan view */
 function drawDims() {
   const a = cssv('--accent'), off = 3.2;
-  /* overall strings run south and east — the bump-out occupies the north side */
+  /* overall strings run south, and down whichever side is clear — dimWest() */
   const tick = (p,dx,dy) => seg3([p[0]-dx,p[1]-dy,0],[p[0]+dx,p[1]+dy,0], a, 1);
-  const sy = C.D + off, ex = C.W + off;
+  const west = dimWest(off), sy = C.D + off, ex = west ? -off : C.W + off;
   seg3([0,sy,0],[C.W,sy,0], a, 1); tick([0,sy],0,.35); tick([C.W,sy],0,.35);
   seg3([ex,0,0],[ex,C.D,0], a, 1); tick([ex,0],.35,0); tick([ex,C.D],.35,0);
   text3([C.W/2, sy+.9, 0], [{ t:ftin(C.W), font:MONO(), color:a }]);
-  text3([ex+1.6, C.D/2, 0], [{ t:ftin(C.D), font:MONO(), color:a }]);
+  text3([ex + (west ? -1.6 : 1.6), C.D/2, 0], [{ t:ftin(C.D), font:MONO(), color:a }]);
 
   if (!ORTHO) return;
-  const d2 = cssv('--ink-3');
-  for (const [n, r] of roomList()) {
-    if (n === 'Balcony') continue;
-    seg3([r[0]+.15, r[1]+.5, .02],[r[2]-.15, r[1]+.5, .02], d2, .6, [3,3]);
-    seg3([r[0]+.5, r[1]+.15, .02],[r[0]+.5, r[3]-.15, .02], d2, .6, [3,3]);
-    text3([(r[0]+r[2])/2, r[1]+1.0, .03], [{ t:ftin(r[2]-r[0]), font:MONO(), color:d2 }]);
-    text3([r[0]+1.5, (r[1]+r[3])/2, .03], [{ t:ftin(r[3]-r[1]), font:MONO(), color:d2 }]);
+  /* Per-room dimensions. The offsets were a flat 1.0 ft and 1.5 ft from the
+     corner whatever the room's size, while the name sits at the centroid — so
+     in anything small both strings landed on the name and on each other. W/D
+     is 2′-4″ × 2′-10″: that put "2′ 4″" 7.6 px from "W/D" and "2′ 10″" 6 px
+     from it, inside a 10 px line box. Two changes.
+
+     The offsets scale with the room, on the axis each one is actually offset
+     along — the width string is pushed in Y so it answers to the room's DEPTH,
+     the depth string is pushed in X so it answers to the room's WIDTH.
+
+     And where even that cannot clear the name, nothing is drawn. Legibility is
+     a screen property, so the budget is spent in pixels and converted: a 10 px
+     line wants about 14 px of vertical room, a short string about 36 px of
+     horizontal room. In Plan the scale is SC/cam.dist px per foot, so zooming
+     in earns a string back instead of banning it for good.
+
+     Rooms the schedule dimensions are skipped outright: drawLabels already
+     prints "5′-0″ × 8′-0″ · 40 sf" under the name, and that line is wide
+     enough to swallow the depth string in any room narrow enough to care —
+     BATH collided with its own label line before this. */
+  const d2 = cssv('--ink-3'), pxft = SC / cam.dist;
+  const vGap = 14 / pxft, hGap = 36 / pxft;
+  for (const [n, r, big] of roomList()) {
+    if (n === 'Balcony' || big) continue;
+    const w = r[2]-r[0], d = r[3]-r[1];
+    const dy = Math.min(1.0, d/3), dx = Math.min(1.5, w/3);
+    if (d/2 - dy >= vGap) {
+      seg3([r[0]+.15, r[1]+.5, .02],[r[2]-.15, r[1]+.5, .02], d2, .6, [3,3]);
+      text3([(r[0]+r[2])/2, r[1]+dy, .03], [{ t:ftin(w), font:MONO(), color:d2 }]);
+    }
+    if (w/2 - dx >= hGap) {
+      seg3([r[0]+.5, r[1]+.15, .02],[r[0]+.5, r[3]-.15, .02], d2, .6, [3,3]);
+      text3([r[0]+dx, (r[1]+r[3])/2, .03], [{ t:ftin(d), font:MONO(), color:d2 }]);
+    }
   }
 }
 
@@ -1812,6 +2178,12 @@ const CAT = [
    {k:'tv55',   n:'TV, 55″',        w:48,d: 3,h:28,s:'tv'},
    {k:'tv65',   n:'TV, 65″',        w:57,d: 3,h:33,s:'tv'},
    {k:'shelf',  n:'Bookcase',       w:32,d:12,h:72,s:'case'},
+   /* ── IKEA, measured off the product pages, 2026-08-01. Fractions are the
+         listed sizes converted straight to decimal inches — 46 5/8″ is 46.625,
+         not "about 47". ── */
+   {k:'billy',  n:'BILLY bookcase',  w:31.5,  d:11,     h:41.75,  s:'case'},
+   {k:'eket4',  n:'EKET cabinet, 4 comp', w:27.5, d:13.75, h:27.5, s:'case'},
+   {k:'radcab', n:'RÅDMANSÖ cabinet', w:46.625, d:19.125, h:40.625, s:'case', clr:[0,0,30,0]},
    {k:'lamp',   n:'Floor lamp',     w:16,d:16,h:60,s:'lamp'},
    {k:'rug57',  n:'Rug, 5 × 7',     w:60,d:84, h:1,s:'rug'},
    {k:'rug810', n:'Rug, 8 × 10',    w:96,d:120,h:1,s:'rug'},
@@ -1825,6 +2197,12 @@ const CAT = [
    {k:'dchair', n:'Dining chair',   w:18,d:20,h:34,s:'chair'},
    {k:'stool',  n:'Counter stool',  w:16,d:16,h:26,s:'stool'},
    {k:'sideb',  n:'Sideboard',      w:60,d:18,h:32,s:'case'},
+   /* ── IKEA ── the gateleg is listed as both entries on purpose: a drop-leaf
+         is bought for the folded footprint and lived in at the open one, and
+         the clearance checker can only grade one shape at a time. ── */
+   {k:'alhult',   n:'ÅLHULT table',            w:31.5,   d:29.125, h:29.5, s:'table', clr:[36,36,36,36], rule:'diningChair'},
+   {k:'pinnfold', n:'PINNTORP gateleg, folded', w:26.375, d:29.5,  h:29.5, s:'table', clr:[36,36,36,36], rule:'diningChair'},
+   {k:'pinnopen', n:'PINNTORP gateleg, open',   w:48.875, d:29.5,  h:29.5, s:'table', clr:[36,36,36,36], rule:'diningChair'},
  ]},
  { g:'Bedroom', items:[
    {k:'king',   n:'King bed',   w:76,d:80,h:24,s:'bed', clr:[0,24,30,24], rule:'bed'},
@@ -1836,6 +2214,16 @@ const CAT = [
    {k:'tall',   n:'Tall dresser',w:34,d:18,h:50,s:'case',clr:[0,0,30,0]},
    {k:'ward',   n:'Wardrobe',   w:48,d:24,h:72,s:'case', clr:[0,0,30,0]},
    {k:'bench',  n:'Bed bench',  w:48,d:18,h:18,s:'soft'},
+   /* ── IKEA ── w × d are the frame's own overall size, NOT the mattress:
+         both of these are queens, and both are wider and longer than the
+         generic 60 × 80 above, which is the point of listing them.
+         h stays at the catalog's 24″ mattress-top convention — IKEA does not
+         publish one, since it depends on the mattress you put in. ── */
+   {k:'radbed',   n:'RÅDMANSÖ bed, queen', w:63,     d:87.375, h:24, s:'bed', clr:[0,24,30,24], rule:'bed'},
+   {k:'idanas',   n:'IDANÄS bed, queen',   w:62.625, d:88.25,  h:24, s:'bed', clr:[0,24,30,24], rule:'bed'},
+   {k:'radnight', n:'RÅDMANSÖ nightstand', w:21.25,  d:15.125, h:22.875, s:'case'},
+   {k:'raddres6', n:'RÅDMANSÖ 6-drawer dresser', w:62.625, d:18.875, h:31.875, s:'case', clr:[0,0,30,0]},
+   {k:'raddres5', n:'RÅDMANSÖ 5-drawer chest',   w:27.5,   d:18.875, h:52,     s:'case', clr:[0,0,30,0]},
  ]},
  { g:'Work & other', items:[
    {k:'desk63', n:'Desk, 63″ walnut', w:63,d:31.5,h:29,s:'desk', clr:[0,0,30,0]},
@@ -1848,12 +2236,32 @@ const CAT = [
    {k:'cube',   n:'Storage cubes',w:30,d:15,h:30,s:'case'},
    {k:'bike',   n:'Bike, upright',w:68,d:22,h:42,s:'soft'},
  ]},
+ /* Outdoor. inBounds() already allowed the bump-out; what was missing was
+    anything anyone would put there, and a seedRect case to drop it out there
+    rather than in the living room. Both plans map this group to their own
+    outdoor floor — goldridge's balcony, hazel's patio.
+    The bistro table's clearance is front-and-back only: on a 5′-7½″-deep
+    balcony you pull a chair out along the long axis, never across it. */
+ { g:'Balcony', items:[
+   {k:'tarnotab', n:'TÄRNÖ table',          w:21,    d:21.625, h:27.5, s:'table', clr:[24,0,24,0]},
+   {k:'tarnochr', n:'TÄRNÖ folding chair',  w:15,    d:15.75,  h:31,   s:'chair'},
+   {k:'morum',    n:'MORUM rug, in/outdoor',w:63,    d:91,     h:0.25, s:'rug'},
+   /* one 9-tile pack laid 3 × 3. IKEA quotes 8.72 sq ft a pack; 35¼″ square
+      is 8.63, the difference being the interlocking edges. */
+   {k:'runnen',   n:'RUNNEN decking, 3 × 3',w:35.25, d:35.25,  h:0.75, s:'deck'},
+ ]},
 ];
 const BYKEY = {}; CAT.forEach(g => g.items.forEach(it => BYKEY[it.k] = it));
 
 let items = [], selId = null, nextId = 1;
 const spec = it => BYKEY[it.k];
 const fW = it => spec(it).w/12, fD = it => spec(it).d/12, fH = it => spec(it).h/12;
+/* Floor coverings. Flat, stacked under everything and never on top of it, not
+   counted as furniture coverage, and never in another piece's way. Rugs and
+   deck tiles are identical in all four respects, so every place that used to
+   test `s === 'rug'` asks this instead — adding a third covering means adding
+   it here and nowhere else. */
+const isFloorCover = it => { const s = spec(it).s; return s === 'rug' || s === 'deck'; };
 
 /* ══════════════════════════════════════════════════════════════════
    STACKING
@@ -1872,7 +2280,7 @@ const fW = it => spec(it).w/12, fD = it => spec(it).d/12, fH = it => spec(it).h/
 function restack() {
   const list = items.slice().sort((a, b) => a.id - b.id);
   for (const it of list) {
-    if (spec(it).s === 'rug') { it.z = 0; continue; }
+    if (isFloorCover(it)) { it.z = 0; continue; }
     let z = 0;
     const c = corners(it);
     for (const o of list) {
@@ -1880,7 +2288,10 @@ function restack() {
       /* pieces that belong together never stack — a chair tucks under its
          desk, a nightstand beside its bed; they do not climb on each other */
       if (partnered(it, o)) continue;
-      if (overlapsRect(c, bboxOf(o))) z = Math.max(z, (o.z || 0) + fH(o));
+      /* polygon vs polygon, not polygon vs bounding box: an angled piece's
+         AABB reaches well past its corners, and standing on that phantom
+         area used to lift furniture into mid-air */
+      if (overlapsPoly(c, corners(o))) z = Math.max(z, (o.z || 0) + fH(o));
     }
     it.z = z + fH(it) <= C.ceiling ? z : 0;      // never through the ceiling
   }
@@ -2002,6 +2413,9 @@ function buildItem(it) {
       rbox(it,-X,-Y,0,X,Y,h-.08,ck); rbox(it,-X-.04,-Y-.04,h-.08,X+.04,Y+.04,h,wd); break;
     case 'soft': rbox(it,-X,-Y,0,X,Y,h,up); break;
     case 'rug':  rbox(it,-X,-Y,.05,X,Y,.05+h,sel?M.sel:M.rugm); break;
+    /* interlocking deck tiles — same flat slab as a rug, but in the deck
+       colour, and it belongs on the balcony rather than over the oak */
+    case 'deck': rbox(it,-X,-Y,.05,X,Y,.05+h,sel?M.sel:M.deck); break;
     case 'tv':
       rbox(it,-X,-Y,h*.18,X,Y,h,sel?M.sel:M.screen);
       rbox(it,-X*.25,-Y-.35,0,X*.25,Y+.35,h*.18,mt); break;
@@ -2046,6 +2460,36 @@ function clearPoly(it) {
   const w = fW(it)/2, d = fD(it)/2, [f,r,b,l] = S.clr.map(v => v/12);
   return [[-w-l,-d-f],[w+r,-d-f],[w+r,d+b],[-w-l,d+b]].map(p => xf(it,p[0],p[1]));
 }
+/* The general two-polygon separating-axis test.
+
+   It exists because a ROTATED piece is NOT its bounding box: at 45° an
+   84×36″ sofa's AABB is 7.07 × 7.07 ft instead of 7.0 × 3.0, and the two
+   phantom corner regions used to read as solid furniture. restack() lifted a
+   floor lamp standing a genuine 30″ clear of an angled sofa 32″ into the air
+   — hovering over bare carpet, reported as fine — and add() refused legal
+   spots up to a foot and a half from any angled piece.
+
+   Axes are BOTH polygons' edge normals: for two arbitrary convex shapes one
+   polygon's normals alone are not a sufficient axis set. */
+function overlapsPoly(A, B) {
+  for (const poly of [A, B]) {
+    for (let i=0;i<poly.length;i++){
+      const a = poly[i], b = poly[(i+1)%poly.length];
+      let ax = [-(b[1]-a[1]), b[0]-a[0]];
+      const L = Math.hypot(ax[0], ax[1]);
+      if (L < 1e-9) continue;                       // degenerate edge, no axis
+      ax = [ax[0]/L, ax[1]/L];
+      let p0=Infinity,p1=-Infinity,q0=Infinity,q1=-Infinity;
+      for (const p of A){ const v=p[0]*ax[0]+p[1]*ax[1]; p0=Math.min(p0,v); p1=Math.max(p1,v); }
+      for (const p of B){ const v=p[0]*ax[0]+p[1]*ax[1]; q0=Math.min(q0,v); q1=Math.max(q1,v); }
+      if (p1 <= q0+1e-7 || q1 <= p0+1e-7) return false;
+    }
+  }
+  return true;
+}
+/* the axis-aligned case — `blockers` really are rects, and this keeps its
+   own cheap axis list rather than deriving normals from a possibly
+   zero-extent rectangle */
 function overlapsRect(poly, rect) {
   const [x0,y0,x1,y1] = rect, rc = [[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
   const axes = [[1,0],[0,1]];
@@ -2076,13 +2520,54 @@ function overlapsRect(poly, rect) {
 function inBounds(it) {
   const [x0,y0,x1,y1] = bboxOf(it);          // defined below; called at runtime
   if (x0 >= 0 && x1 <= C.W && y0 >= 0 && y1 <= C.D) return true;
-  const [b0,b1,b2,b3] = mRect(G.balcony);
+  /* Was mRect(G.balcony). Only goldridge derives a `balcony`; hazel derives a
+     `patio`, so on that plan this destructured undefined and threw the moment
+     a piece left the envelope. Nothing had reached it before, because until the
+     Balcony catalog group there was no furniture anyone would put out there. */
+  const [b0,b1,b2,b3] = mRect(U.outdoor(C, G));
   return x0 >= b0 && x1 <= b2 && y0 >= b1 && y1 <= b3;
 }
 function placeable(it) {
   const poly = corners(it);
   for (const r of blockers) if (overlapsRect(poly, r)) return false;
   return inBounds(it);
+}
+/* Where a piece that is nowhere legal gets put back.
+
+   The unit rectangle is the fallback parking space, and it is only ever
+   reached by a footprint that is OUT of bounds: a piece sitting legitimately
+   on the balcony still reads inBounds() there, so this never drags one off
+   the deck. Returns (x,y) untouched when the piece is in bounds already. */
+function clampInside(it, x, y) {
+  const px = it.x, py = it.y;
+  it.x = x; it.y = y;
+  const ok = inBounds(it);
+  const [x0,y0,x1,y1] = bboxOf(it);            // the bbox is centred on (x,y)
+  it.x = px; it.y = py;
+  if (ok) return [x, y];
+  const hw = (x1-x0)/2, hd = (y1-y0)/2;
+  /* a footprint wider than the room has no legal band to clamp into —
+     centre it rather than invert the limits */
+  return [hw*2 >= C.W ? C.W/2 : clamp(x, hw, C.W-hw),
+          hd*2 >= C.D ? C.D/2 : clamp(y, hd, C.D-hd)];
+}
+/* Spiral out from (cx,cy) in quarter-foot rings for the first position where
+   `ok` holds, and return a COPY of the piece sitting there — the caller
+   decides whether to commit it. Shared by the catalog drop and duplicate(),
+   which both need a world-space search near a given point. (add() has its
+   own, different search: it ranks the whole floor by distance from the
+   piece's home room.) */
+function ringFind(it, cx, cy, maxR, ok) {
+  const at = (x, y) => ({ ...it, x: Math.round(x*4)/4, y: Math.round(y*4)/4 });
+  let q = at(cx, cy);
+  if (ok(q)) return q;
+  for (let r = 0.25; r <= maxR; r += 0.25)
+    for (let a = 0; a < 16; a++) {
+      const t = a / 16 * Math.PI * 2;
+      q = at(cx + Math.cos(t)*r, cy + Math.sin(t)*r);
+      if (ok(q)) return q;
+    }
+  return null;
 }
 /* would the piece be legal at (x,y)? tested without committing the move */
 function freeAt(it, x, y, rot) {
@@ -2097,7 +2582,14 @@ function freeAt(it, x, y, rot) {
    overlapping — an older layout, or a dimension change moved a wall onto it —
    movement is left free, otherwise it would be trapped there for good. */
 function slide(it, nx, ny) {
-  if (!placeable(it))              return [nx, ny];
+  /* ...but free is not the same as unbounded. This branch used to return the
+     raw pointer point with no test whatsoever, so one blocked piece could be
+     dragged straight through every wall — hitFloor() intersects an INFINITE
+     plane, so a shallow camera put it a hundred feet out in the car park,
+     still counted by the fit report. The blocker test stays skipped (a piece
+     trapped by a moved wall has to be able to slide out from under it); the
+     envelope does not. */
+  if (!placeable(it))              return clampInside(it, nx, ny);
   if (freeAt(it, nx, ny))          return [nx, ny];
   if (freeAt(it, nx, it.y))        return [nx, it.y];
   if (freeAt(it, it.x, ny))        return [it.x, ny];
@@ -2126,8 +2618,8 @@ function clearanceOK(it) {
   const cp = clearPoly(it); if (!cp) return null;
   for (const r of blockers) if (overlapsRect(cp, r)) return false;
   for (const o of items) {
-    if (o.id === it.id || spec(o).s === 'rug' || partnered(it, o) || o.z > 0) continue;
-    if (overlapsRect(cp, bboxOf(o))) return false;
+    if (o.id === it.id || isFloorCover(o) || partnered(it, o) || o.z > 0) continue;
+    if (overlapsPoly(cp, corners(o))) return false;      // exact footprint, not its AABB
   }
   return true;
 }
@@ -2136,6 +2628,25 @@ const bboxOf = it => {
   return [Math.min(...c.map(p=>p[0])), Math.min(...c.map(p=>p[1])),
           Math.max(...c.map(p=>p[0])), Math.max(...c.map(p=>p[1]))];
 };
+/* Nothing lands on top of something already placed. Walls block by way of
+   `blockers`, but items are not in there — without this every piece seeded
+   to the same room stacks on the identical square. Rugs are exempt in BOTH
+   directions: they belong under the furniture.
+
+   Lifted out of add(), which is no longer the only caller — duplicate() has
+   to make the same test, and used to make none at all. */
+function clearOfItems(it) {
+  /* isFloorCover, not s === 'rug': deck tiles are a floor covering too, and
+     testing the shape name directly would have made a RUNNEN pack block the
+     furniture standing on it. Same reason every other rug test moved. */
+  if (isFloorCover(it)) return true;
+  const p = corners(it);
+  for (const o of items) {
+    if (o.id === it.id || isFloorCover(o)) continue;
+    if (overlapsPoly(p, corners(o))) return false;
+  }
+  return true;
+}
 /* sofa ↔ coffee table wants a RANGE: too close is as wrong as too far */
 function sofaCoffeeGap() {
   const sofas = items.filter(i => spec(i).rule === 'sofaCoffee');
@@ -2275,9 +2786,45 @@ function areaReport() {
      read `blockers`, and the fixture-less build above would hide the casework */
   buildShell();
   const a = r => (r[2]-r[0])*(r[3]-r[1]);
+  const gi = gross/(S*S);
+  /* Gross BUILDING area — measured to the outside face of the exterior walls,
+     which is what a listing quotes and what neither of the two numbers above
+     is. For any rectilinear outline the exterior area is the interior plus
+     perimeter × thickness plus one corner square per net convex corner; and a
+     staircase-convex plan (a rectangle, or an L) has the perimeter of its own
+     bounding box and exactly four net convex corners, so this holds for both
+     plans without special-casing the L. Anything enclosed OUTSIDE the envelope
+     — the closet stack in the bump-out — is the plan's to add.
+
+     This is the number that reconciles Goldridge to its listed 650 sf. Do not
+     conclude a listing is wrong by comparing it against interior clear. */
+  const grossExt = gi + 2*(C.W + C.D)*C.wallExt + 4*C.wallExt*C.wallExt
+                      + (U.bumpGross ? U.bumpGross(C, G) : 0);
+  /* The extras column means "space outside the net" — Goldridge's balcony,
+     storage and coat closet all sit in the bump-out at negative Y, so they
+     are genuinely additional. Hazel's bedroom closet is not: it lies wholly
+     inside the footprint and is therefore already inside gross and net, so
+     listing it the same way double-counted 32 sf. Rather than special-case
+     that plan, measure it: an extra covered by the footprint is inside.
+     Tested against the same footprint areaReport masked the raster with,
+     so the flag can never disagree with the numbers above it. */
+  const fp = U.footprint(C, G);
+  const covered = r => {
+    const ar = a(r); if (ar <= 0) return false;   // a collapsed extra is neither
+    /* summed, not unioned — the footprint rects tile the floor and do not
+       overlap in either plan. A plan that returned overlapping rects would
+       need a union here, or an extra could read as covered when it is not. */
+    let c = 0;
+    for (const f of fp) {
+      const w = Math.min(r[2],f[2]) - Math.max(r[0],f[0]);
+      const h = Math.min(r[3],f[3]) - Math.max(r[1],f[1]);
+      if (w > 0 && h > 0) c += w*h;
+    }
+    return c >= ar - 1e-6;
+  };
   return {
-    gross: gross/(S*S), net: free/(S*S),
-    extras: U.areaExtras(C, G).map(([n, dims, r]) => [n, dims, a(r)]),
+    gross: gi, net: free/(S*S), grossExt,
+    extras: U.areaExtras(C, G).map(([n, dims, r]) => [n, dims, a(r), covered(r)]),
   };
 }
 
@@ -2320,8 +2867,29 @@ function draw() {
   restack();
   for (const it of items) buildItem(it);
   if (GL) glBegin();
+  /* Three layers, back to front. Everything at or below the finished floor —
+     the storey-below slab, the walkway deck, the flight — is behind the floor
+     from any camera clampEye() allows; the floor is behind everything
+     standing on it. That layering used to be only two deep, floors and then
+     all of `quads`, so the slab below and the neighbour stub painted OVER the
+     unit's own floor. On a machine with no WebGL that was the single largest
+     error in the frame, and it is why buildEntryStair had to fake the storey
+     below as a picture frame rather than a slab.
+
+     One merged sorted list — the obvious fix — is much worse, not better: the
+     floor spans the whole frame, so its nearest vertex is the frame's nearest
+     vertex and it sorts LAST, painted over every wall in the unit. Measured
+     across 16 camera angles on both plans that is 17% of covered pixels
+     wrong. Three layers with the existing sort inside each is 5.5%, against
+     6.1% for what shipped, and — the part that matters for a view you can
+     orbit — no camera angle I sampled is worse than it was.
+
+     GL ignores `sort` and has a real depth buffer, so nothing changes there. */
+  const low = [], high = [];
+  for (const q of quads) (underFloor(q) ? low : high).push(q);
+  paint(low, true);
   paint(floorQuads, false);
-  paint(quads, true);
+  paint(high, true);
   if (GL) glEnd();
   if (showGrid) drawGrid();
   if (showDims) drawDims();
@@ -2375,6 +2943,12 @@ function pick(sx, sy) {
 }
 
 /* ══ pointer + touch ═══════════════════════════════════════════════ */
+/* The far zoom stop was a flat 160 ft. That is short of where a view button
+   now stands: fitting a 28′ plan into a 400×900 panel needs 161 ft, so the
+   first wheel tick after pressing Iso used to yank the camera forward and
+   clip the plan again. The stop still refuses to let the user drift further
+   out than 160, it just never argues with a framing the app chose itself. */
+const farZoom = from => Math.max(160, from);
 let mode = null, last = null, dragOff = null, downAt = null, moved = false;
 const touches = new Map();
 let pinch0 = 0, dist0 = 0;
@@ -2411,7 +2985,8 @@ cv.addEventListener('pointermove', ev => {
     if (touches.size < 2) return;
     const [a,b] = [...touches.values()];
     const d = Math.hypot(a[0]-b[0], a[1]-b[1]);
-    if (d > 4 && dist0 > 4) cam.dist = clamp(pinch0 * dist0/d, 9, 160);
+    if (d > 4 && dist0 > 4) cam.dist = clamp(pinch0 * dist0/d, 9, farZoom(pinch0));
+    clampEye();
     draw(); return;
   }
   const dx = ev.clientX-last[0], dy = ev.clientY-last[1];
@@ -2428,6 +3003,7 @@ cv.addEventListener('pointermove', ev => {
       cam.az += dx*0.34;
       cam.el = clamp(cam.el + dy*0.28, 4, 88);
     }
+    clampEye();          // the 4° stop alone lets the eye under the floor
   } else if (mode === 'pan') {
     const k = cam.dist*0.0016;
     cam.tx += (B.r[0]*dx + B.u[0]*dy)*k;
@@ -2484,18 +3060,35 @@ cv.addEventListener('wheel', ev => {
      9–160 ft range inside a single frame. */
   const per = ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? VH : 1;
   const dy = clamp(ev.deltaY * per, -240, 240);
-  cam.dist = clamp(cam.dist * Math.exp(dy*0.0011), 9, 160);
+  cam.dist = clamp(cam.dist * Math.exp(dy*0.0011), 9, farZoom(cam.dist));
+  clampEye();            // zooming in lowers the eye just as tilting does
   draw();
 }, { passive:false });
 
 addEventListener('keydown', ev => {
   if (/^(INPUT|TEXTAREA)$/.test(ev.target.tagName)) return;
   const it = items.find(i => i.id === selId);
+  /* Cmd/Ctrl+Shift+Z is redo everywhere else, and it used to fall into the
+     undo branch below and quietly undo a SECOND step — an edit lost with no
+     way back. There is no redo stack on purpose: pushUndo() is not called by
+     drags or rotations, so redo would restore a stale item list and discard
+     every move made since. Say that instead of destroying more work. */
+  if ((ev.metaKey || ev.ctrlKey) && ev.shiftKey && ev.key.toLowerCase() === 'z') {
+    showSaved('Undo only — there is no redo'); ev.preventDefault(); return;
+  }
   if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 'z') {
     undo(); ev.preventDefault(); return;
   }
   if (ev.key === 'Escape') { selId = null; sync(); draw(); return; }
   if (!it) return;
+  /* Modified keys belong to the browser and the OS. The table below matches
+     on ev.key alone and calls preventDefault() unconditionally, so without
+     this bail Cmd/Ctrl+R rotated the piece 15° and swallowed the reload, and
+     Cmd+←/→ nudged instead of navigating. Cmd+Backspace stops deleting a
+     piece as a result — plain Backspace and Delete still do. altKey is in the
+     list for KEYDOWN only; it stays load-bearing as the snap-off modifier on
+     pointermove. */
+  if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
   const step = ev.shiftKey ? 1 : 0.25;
   if (ev.key === 'Backspace' || ev.key === 'Delete') { remove(it.id); ev.preventDefault(); return; }
   /* nudges and rotations obey the same wall constraint as dragging —
@@ -2530,20 +3123,38 @@ function homeRect(k) {
   return mRect(U.seedRect(C, G, groupOf(k)));
 }
 function add(k) {
-  pushUndo();
+  /* NOTHING is committed until a spot has been chosen — not the item, not an
+     undo entry. The passes below only ever test `it` against the OTHER
+     pieces, so it does not need to be in the list while they run, and if one
+     of them throws (a catalog key with no spec, a plan whose geometry is
+     incomplete) a half-placed phantom used to be left behind in `items`,
+     drawn, saved and counted, with an undo entry that restored nothing. */
   const it = { id: nextId++, k, x: cam.tx, y: cam.ty, rot: 0 };
-  const h = homeSeed(k);
-  const seed = [clamp(h[0],2,C.W-2), clamp(h[1],2,C.D-2)], cand = [];
+  const h = homeSeed(k), home = homeRect(k);
+  /* The sweep used to cover the envelope alone, and the seed was clamped into
+     it — so a piece whose home is the balcony got pulled indoors before the
+     search even began, and no candidate out on the deck ever existed to find.
+     Sweep the outdoor rect as well, and clamp the seed into the piece's own
+     home rather than into the envelope. Indoor pieces are unaffected: their
+     home is already inside, and the deck sweep only ever adds squares that
+     inBounds() was willing to accept anyway. */
+  const cl = (v, lo, hi) => hi - lo < 2 ? (lo + hi) / 2 : clamp(v, lo + 1, hi - 1);
+  const seed = home ? [cl(h[0], home[0], home[2]), cl(h[1], home[1], home[3])]
+                    : [clamp(h[0], 2, C.W - 2), clamp(h[1], 2, C.D - 2)];
+  const cand = [];
   /* 3" steps: a queen in a 12′ bedroom can clear 24″ both sides by under an
      inch, and a coarser grid simply never lands on it. */
-  for (let x=.5;x<=C.W-.5;x+=.25) for (let y=.5;y<=C.D-.5;y+=.25)
-    cand.push([x,y,(x-seed[0])**2+(y-seed[1])**2]);
+  const sweep = (x0, y0, x1, y1) => {
+    for (let x=x0+.5;x<=x1-.5;x+=.25) for (let y=y0+.5;y<=y1-.5;y+=.25)
+      cand.push([x,y,(x-seed[0])**2+(y-seed[1])**2]);
+  };
+  sweep(0, 0, C.W, C.D);
+  const deck = mRect(U.outdoor(C, G));
+  sweep(deck[0], deck[1], deck[2], deck[3]);
   cand.sort((a,b)=>a[2]-b[2]);
   /* Two passes: prefer somewhere the piece both fits AND keeps its declared
      clearance, so a new bed doesn't land jammed against a wall reporting FAIL.
      Fall back to merely fitting if the plan has no such spot. */
-  items.push(it);
-  const home = homeRect(k);
   const inHome = ([x,y]) => !home || (x > home[0] && x < home[2] && y > home[1] && y < home[3]);
   /* 1. somewhere it fits AND keeps its clearance
      2. failing that, somewhere it merely fits INSIDE ITS OWN ROOM — a queen
@@ -2558,43 +3169,62 @@ function add(k) {
   const spine = keepOut();
   const clearOfSpine = () => { const p = corners(it);
     return !spine.some(r => overlapsRect(p, r)); };
-  /* nothing lands on top of something already placed. Walls block by way of
-     `blockers`, but items are not in there — without this every piece seeded
-     to the same room stacks on the identical square. Rugs are exempt in both
-     directions: they belong under the furniture. */
-  const clearOfItems = () => {
-    if (spec(it).s === 'rug') return true;
-    const p = corners(it);
-    for (const o of items) {
-      if (o.id === it.id || spec(o).s === 'rug') continue;
-      if (overlapsRect(p, bboxOf(o))) return false;
-    }
-    return true;
-  };
-  const base = () => fits(it) && clearOfItems();
-  const passes = [
+  const base = () => fits(it) && clearOfItems(it);   // hoisted: duplicate() needs it too
+  const inRoom = [
     ([x,y]) => inHome([x,y]) && base() && clearOfSpine() && clearanceOK(it) !== false,
     ([x,y]) => inHome([x,y]) && base() && clearOfSpine(),
     ([x,y]) => inHome([x,y]) && base(),
+  ];
+  const anywhere = [
     ()      => base() && clearOfSpine() && clearanceOK(it) !== false,
     ()      => base(),
     ()      => fits(it),
   ];
+  /* Every in-room pass square-on, THEN every in-room pass turned 90°, and only
+     then let the piece leave its room. Without the turn anything that fits its
+     room only the long way falls straight through to "anywhere it fits": the
+     balcony rug is 5′-3″ × 7′-7″ on a deck 5′-7½″ deep, so it was landing in
+     the living room. Rotation is tried only after square-on has failed at every
+     candidate in the room, so no placement that succeeds today can move. */
+  const plan = [];
+  for (const rot of [0, 90]) for (const t of inRoom) plan.push([rot, t]);
+  for (const t of anywhere) plan.push([0, t]);
   let placed = false;
-  for (const test of passes) {
+  for (const [rot, test] of plan) {
+    it.rot = rot;
     for (const c of cand) { it.x=c[0]; it.y=c[1]; if (test(c)) { placed = true; break; } }
     if (placed) break;
   }
+  if (!placed) it.rot = 0;
+  pushUndo();                                   // only now is there anything to undo
+  items.push(it);
   selId = it.id; save(); sync(); draw();
 }
 function remove(id){
   pushUndo();
   items = items.filter(i=>i.id!==id); if (selId===id) selId=null; save(); sync(); draw();
 }
+/* A copy has to be a LEGAL copy.
+
+   This was `{...s, x: s.x+1, y: s.y+1}` pushed straight into the list with no
+   test of any kind. A 1 ft diagonal offset is smaller than almost every
+   catalog footprint, so the copy always overlapped its original and restack()
+   then stood it on top: a dining chair balanced 34″ in the air, reported as
+   fine by the list panel. Repeated copies walked diagonally out through the
+   walls, building a tower until it hit the ceiling.
+
+   So: spiral out from the original for the first spot where the copy both
+   fits the plan and stands clear of what is already placed, and decline if
+   there is none. The radius scales with the piece — a queen has to travel
+   more than its own depth before it can possibly clear itself. */
 function duplicate(id){
   const s = items.find(i=>i.id===id); if(!s) return;
+  const seed = { ...s, id: nextId, z: 0 };
+  const spot = ringFind(seed, s.x + 1, s.y + 1, Math.max(fW(s), fD(s)) + 4,
+                        q => placeable(q) && clearOfItems(q));
+  if (!spot) { showSaved('No clear spot for a copy'); return; }
   pushUndo();
-  const it = {...s, id: nextId++, x: s.x+1, y: s.y+1};
+  const it = { ...spot, id: nextId++ };
   items.push(it); selId = it.id; save(); sync(); draw();
 }
 
@@ -2616,21 +3246,39 @@ function duplicate(id){
 const KP = opts.keyPrefix || 'apt.ui.';
 const layoutKey = () => KP + U.id + '.layout';        // never versioned
 const cfgKey    = () => KP + U.id + '.config.' + U.rev;   // bumped with CONFIG's shape
+/* "this apartment has had its one migration". ONCE has to be recorded
+   somewhere: an empty layout cannot tell "never migrated" apart from
+   "deliberately emptied", and reading it as the former is how Clear All
+   used to come undone on the next reload. */
+const adoptKey  = () => KP + U.id + '.legacyAdopted';
 const LEGACY_KEYS = ['apt.parametric.unit14.v3', 'apt.parametric.unit14.v2',
                      'apt.parametric.unit14.v1', 'apt.parametric.a101.v1',
                      'apt.parametric.v2'];
 let saveT = null, lastSaved = 0;
+/* what this tab last wrote to the layout key, and the other tab's record when
+   the two have diverged — see "another tab" below */
+let savedSig = '', extConflict = null;
+/* the ARRANGEMENT only — id, piece, position, rotation. Not JSON.stringify
+   (items): restack() hangs a derived `z` off each piece as it draws, so a
+   whole-object signature drifts on its own and would read as unsaved work. */
+const itemSig = () => JSON.stringify(items.map(i => [i.id, i.k, i.x, i.y, i.rot]));
 function save() {
-  clearTimeout(saveT);
+  clearTimeout(saveT); saveT = null;
+  /* An unresolved cross-tab conflict suspends BOTH writes. Whichever way it
+     goes, one side's work disappears, and that is the user's call, not ours —
+     until they make it, the other tab's saved record stands. */
+  if (extConflict) return;
   /* capture the keys now: a plan switch between scheduling and firing must
      not write this apartment's furniture into the other one's key */
   const lk = layoutKey(), ck = cfgKey();
   const snap = JSON.stringify({ items, cam }), cfg = JSON.stringify({ C });
+  const sig = itemSig();
   saveT = setTimeout(() => {
     try {
       localStorage.setItem(lk, snap);
       localStorage.setItem(ck, cfg);
       localStorage.setItem(KP + 'plan', U.id);
+      savedSig = sig;                // only once it is actually down
       lastSaved = Date.now(); showSaved();
     } catch(e){ showSaved('Could not save — storage is blocked'); }
   }, 250);
@@ -2641,11 +3289,52 @@ function save() {
 function flushSave() {
   if (!saveT) return;
   clearTimeout(saveT); saveT = null;
+  if (extConflict) return;                       // as above: not ours to settle
   try {
     localStorage.setItem(layoutKey(), JSON.stringify({ items, cam }));
     localStorage.setItem(cfgKey(),    JSON.stringify({ C }));
+    savedSig = itemSig();
   } catch(e){}
 }
+
+/* ══ another tab on the same origin ════════════════════════════════
+   localStorage is shared by every tab on the origin, and save() writes the
+   whole items array with no version check — so two tabs on one apartment are
+   last-writer-wins. The losing tab did not even have to edit anything:
+   glide() saves when a camera move finishes, so clicking Iso or Plan in a
+   tab left open from this morning was enough to stamp its stale furniture
+   over an afternoon's arranging in the other one. Nothing listened for the
+   storage event, so nothing noticed and nothing said so.
+
+   What can be done about an incoming write depends on whether THIS tab has
+   anything to lose:
+     · nothing unsaved — the incoming record is strictly newer and this tab's
+       is exactly what it replaced, so adopt it. Items only: the other tab
+       does not get to move this one's camera. This is the common case, and
+       it is the whole of the reported bug.
+     · unsaved changes here — adopting throws away what is on screen,
+       overwriting throws away the other tab's. Neither is ours to pick, so
+       hold both, stop writing, and let the interface offer the choice
+       (api.conflict / api.resolveConflict). Nothing is destroyed meanwhile.
+   ══════════════════════════════════════════════════════════════════ */
+function onStorage(e) {
+  if (!U || !e || e.key !== layoutKey()) return;   // another apartment, or the config
+  let d = null;
+  try { d = JSON.parse(e.newValue || 'null'); } catch (err) { return; }
+  if (!d || !Array.isArray(d.items)) return;
+  if (itemSig() === savedSig) {                    // clean: nothing here to lose
+    applyLayout({ items: d.items });
+    savedSig = itemSig(); selId = null; extConflict = null;
+    sync(); draw();
+    showSaved('Updated — this apartment was changed in another tab');
+    return;
+  }
+  extConflict = { items: d.items };
+  clearTimeout(saveT); saveT = null;               // the pending write must not land on it
+  sync();
+  showSaved('Changed in another tab — nothing is saved here until you choose');
+}
+addEventListener('storage', onStorage);
 /* items only ever come back through here, so a hand-edited or stale file
    cannot inject a key the catalog does not have */
 function applyLayout(d) {
@@ -2657,6 +3346,34 @@ function applyLayout(d) {
   }
   if (d.cam) Object.assign(cam, d.cam, { fov:36 });
 }
+/* A saved config is merged over the plan's defaults KEY BY KEY, and a value
+   that is not the right shape is dropped rather than adopted — the same
+   quarantine applyLayout() gives the furniture.
+
+   setConfig() has always guarded what the pane types (isFinite && > 0), but
+   nothing guarded what came back off disk, and a config only has to be wrong
+   once to be permanent: C is written to localStorage, so it reloads. A string
+   "30" made configSections() throw on +C[k].toFixed(4) — every render, not
+   just the Dimensions pane, so the error boundary ate the whole component and
+   took the Reset button with it. A negative W reached areaReport()'s
+   new Uint8Array(nx*ny) and threw RangeError during mount, so the app never
+   became ready. Neither had any in-app way back.
+
+   Walking PLAN's keys, rather than filtering the saved object, is what keeps
+   mirror/solidGuard/openRiser/neighbour working — they are booleans, and a
+   blanket "must be a positive number" rule would silently drop all four. Keys
+   PLAN does not define are dropped: this build cannot draw them. */
+function mergeConfig(plan, saved) {
+  const out = { ...plan };
+  if (!saved || typeof saved !== 'object') return out;
+  for (const k of Object.keys(plan)) {
+    if (!Object.prototype.hasOwnProperty.call(saved, k)) continue;
+    if (typeof plan[k] === 'boolean') { out[k] = !!saved[k]; continue; }
+    const v = Number(saved[k]);
+    if (isFinite(v) && v > 0) out[k] = v;      // anything else keeps the default
+  }
+  return out;
+}
 /* Point the whole model at a plan: adopt its config and its saved layout.
    This is the only place U, C and G are assigned. */
 function selectPlan(id) {
@@ -2664,34 +3381,65 @@ function selectPlan(id) {
   U = planById(id);
   C = { ...U.PLAN };
   items = []; selId = null; nextId = 1; undoStack = []; GHOSTITEM = null;
+  /* a cross-tab conflict is about one apartment's key; leaving this apartment
+     leaves it behind, unresolved and unwritten */
+  extConflict = null;
   try {
     const cfg = JSON.parse(localStorage.getItem(cfgKey()) || 'null');
-    if (cfg && cfg.C) C = { ...U.PLAN, ...cfg.C };
+    if (cfg && cfg.C) C = mergeConfig(U.PLAN, cfg.C);
   } catch(e){}
   G = U.derive(C);
   Object.assign(cam, VIEWS().iso);            // reframe for this envelope
   try {
     let lay = JSON.parse(localStorage.getItem(layoutKey()) || 'null');
-    if ((!lay || !(lay.items || []).length) && U.legacy)
+    /* ONCE, and once means once. The rescue used to be gated on the current
+       layout being empty, which re-fired it on every boot until something was
+       placed: Clear All, close the tab, and the old arrangement was back with
+       an empty undo stack (selectPlan resets it) and no way to refuse. The
+       marker below is what "once" actually needs, and it is written whether or
+       not anything was found, so an origin with no legacy data stops scanning
+       five keys on every plan select. The legacy keys themselves are left
+       alone — deletion is irreversible, and they are the only copy of
+       pre-migration work if an adoption ever goes wrong. */
+    const migrate = U.legacy && !localStorage.getItem(adoptKey());
+    let rescued = false;
+    if (migrate && (!lay || !(lay.items || []).length))
       for (const k of LEGACY_KEYS) {                 // rescue an orphan, once
         const d = JSON.parse(localStorage.getItem(k) || 'null');
-        if (d && (d.items || []).length) { lay = { items: d.items }; break; }
+        if (d && (d.items || []).length) { lay = { items: d.items }; rescued = true; break; }
       }
     if (lay) applyLayout(lay);
+    if (migrate) {
+      /* write the adopted pieces out BEFORE marking, and after applyLayout so
+         what lands is the filtered list: the marker means "already migrated",
+         so a crash in between would otherwise strand them behind it */
+      if (rescued) localStorage.setItem(layoutKey(), JSON.stringify({ items, cam }));
+      localStorage.setItem(adoptKey(), '1');
+    }
   } catch(e){}
+  /* this tab is now exactly what its key holds — the baseline another tab's
+     write gets compared against */
+  savedSig = itemSig();
 }
 
 /* ══ undo ══════════════════════════════════════════════════════════
    Clear-all used to be one click from losing an evening's arranging with
    no way back. Every mutation pushes the previous item list first. */
 let undoStack = [];
+/* The entry carries the HANDEDNESS as well as the items. Mirroring the plan
+   moves every piece with it (see setMirror), so an entry holding the item
+   list alone would put the furniture back while leaving the plan flipped —
+   the layout restored into the wrong hand of the apartment. A layout and the
+   handedness it was arranged in are one thing, and they travel together. */
 function pushUndo() {
-  undoStack.push(JSON.stringify(items));
+  undoStack.push(JSON.stringify({ items, mirror: !!C.mirror }));
   if (undoStack.length > 40) undoStack.shift();
 }
 function undo() {
   if (!undoStack.length) return;
-  items = JSON.parse(undoStack.pop());
+  const prev = JSON.parse(undoStack.pop());
+  items = prev.items;
+  if (!!C.mirror !== prev.mirror) C = { ...C, mirror: prev.mirror };
   selId = null; save(); sync(); draw();
 }
 
@@ -2753,6 +3501,18 @@ function snapshot() {
 function restoreProject(doc) {
   if (!doc || doc.format !== PROJECT_FORMAT || !doc.plans)
     return { ok: false, reason: 'That file is not an Iso Home project.' };
+  /* DISCARD any pending autosave before writing a line of this file.
+     It holds the keys AND the items from before the restore, and the usual
+     safety net does not apply here: selectPlan flushes on a plan switch, but
+     `U = null` below is deliberately set so that flush is skipped. The stale
+     timer then fired ~250ms later and wrote the PRE-restore furniture over
+     the apartment that had just been restored — and since planState() reads
+     non-live plans straight out of localStorage, the next linked-file write
+     copied that loss into the user's file. Discard rather than flush: the
+     rule here is that THE FILE WINS, so pre-restore items must not be
+     written out at all. fileT is deliberately left armed — the linked file
+     should still re-converge on the restored state. */
+  clearTimeout(saveT); saveT = null;
   const restored = [], skipped = [];
   for (const id of Object.keys(doc.plans)) {
     const p = PLANS.find(x => x.id === id), st = doc.plans[id];
@@ -2761,6 +3521,11 @@ function restoreProject(doc) {
       localStorage.setItem(KP + id + '.layout', JSON.stringify({
         items: Array.isArray(st.items) ? st.items : [], cam: st.cam || undefined }));
       if (st.C) localStorage.setItem(KP + id + '.config.' + p.rev, JSON.stringify({ C: st.C }));
+      /* the file is the record, so it settles the migration too: without this,
+         restoring a project that says an apartment is empty would hand it back
+         with the pre-migration furniture in it — furniture that is in no file
+         anywhere — the first time that apartment was selected */
+      localStorage.setItem(KP + id + '.legacyAdopted', '1');
       restored.push(p.name);
     } catch (e) { skipped.push(id); }
   }
@@ -2833,6 +3598,10 @@ const handleDrop = ()  => idbStore('readwrite', st => st.delete('project'));
 
 async function writeLinked() {
   if (!fileHandle) return;
+  /* an unresolved cross-tab conflict suspends this too, and it matters more
+     here: pagehide calls writeLinked() directly, so closing the stale tab
+     would otherwise push its version into the durable file */
+  if (extConflict) return;
   if (writingFile) { writeAgain = true; return; }
   writingFile = true;
   try {
@@ -3006,7 +3775,10 @@ function loadLayoutDoc(d) {
     return;
   }
   pushUndo();
-  if (d.C) { C = { ...U.PLAN, ...d.C }; G = U.derive(C); }
+  /* through mergeConfig for the same reason applyLayout exists: a layout file
+     is as hand-editable as a project file, and an out-of-shape dimension in
+     one used to reach C intact and break every render from then on */
+  if (d.C) { C = mergeConfig(U.PLAN, d.C); G = U.derive(C); }
   applyLayout(d);
   selId = null; save(); sync(); draw();
   showSaved(`Loaded ${items.length} piece${items.length === 1 ? '' : 's'}`);
@@ -3034,7 +3806,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let anim = null;
 function glide(to, ms) {
   cancelAnimationFrame(anim);
-  if (REDUCED) { Object.assign(cam, to); draw(); save(); return; }
+  if (REDUCED) { Object.assign(cam, to); clampEye(); draw(); save(); return; }
   const from = { az:cam.az, el:cam.el, dist:cam.dist, tx:cam.tx, ty:cam.ty, tz:cam.tz };
   let daz = to.az - from.az;
   while (daz > 180) daz -= 360; while (daz < -180) daz += 360;
@@ -3043,6 +3815,7 @@ function glide(to, ms) {
     const k = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-k,3);
     cam.az = from.az + daz*e;
     for (const p of ['el','dist','tx','ty','tz']) cam[p] = from[p] + ((to[p] ?? from[p]) - from[p])*e;
+    clampEye();          // an animated move must not dip under the floor either
     draw();
     if (k < 1) anim = requestAnimationFrame(step); else save();
   })(t0);
@@ -3071,6 +3844,14 @@ const grade = (v, min, good) => v >= (good == null ? min : good) ? 'pass' : v >=
 function fitData() {
   buildShell(); restack(); for (const it of items) buildItem(it);
   const probs = U.problems(C, G);
+  /* Not plan-specific, so it lives here rather than in either problems():
+     a ceiling nobody can stand under is wrong on any plan, and nothing
+     reported it. The pane's min="1" is a browser hint that a typed value
+     walks straight past, and setConfig only asks for a positive number —
+     so 0.5 (a plausible slip for 8′-6″) went in silently and, before the
+     clamp in wallTop(), took every wall with it. */
+  if (C.ceiling < 6 + 8/12)
+    probs.push(`Ceiling is ${ftin(C.ceiling)} — under the 6′-8″ minimum for a habitable room.`);
   const routes = widestRoutes(), gap = sofaCoffeeGap();
   const R = (label, val, state, note) => ({ label, val, state, note: note || '' });
   /* the plan-specific half: what the dimensions alone already decide,
@@ -3078,7 +3859,7 @@ function fitData() {
   const sections = U.fit(C, G, R, grade);
 
   sections.push({ title: 'Circulation — narrowest point en route', rows: routes.map(r => r.widthIn
-    ? R(r.room, r.widthIn + '″', grade(r.widthIn, 30, 36),
+    ? R(r.room, inch(r.widthIn), grade(r.widthIn, 30, 36),
         r.widthIn < 36 && r.widthIn >= 30 ? 'Doorway-width pinch. Normal, but nothing bulky passes.' : '')
     : R(r.room, 'blocked', 'fail', 'No route wide enough to walk. Something is in the way.')) });
 
@@ -3092,7 +3873,7 @@ function fitData() {
   });
   if (gap !== null) {
     const st = gap >= 16 && gap <= 18 ? 'pass' : (gap >= 12 && gap <= 24 ? 'tight' : 'fail');
-    per.push(R('Sofa to coffee table', Math.round(gap) + '″', st,
+    per.push(R('Sofa to coffee table', inch(gap), st,
       st === 'pass' ? '' : "Wants 16–18″. Closer is a shin-barker, further and you can't reach it."));
   }
   sections.push({ title: 'Per-piece clearance', rows: per,
@@ -3101,11 +3882,18 @@ function fitData() {
   const A = areaReport(), sch = scheduled();
   const areaRows = roomList().filter(([n]) => sch.includes(n)).map(([n, r]) => ({
     label: n, size: `${ftin(r[2]-r[0])} × ${ftin(r[3]-r[1])}`,
-    sf: Math.round((r[2]-r[0]) * (r[3]-r[1])) + ' sf', strong: false }));
-  areaRows.push({ label: 'Gross interior', size: U.envelope(C, G), sf: A.gross.toFixed(0) + ' sf', strong: false });
-  areaRows.push({ label: 'Net floor', size: `less ${(A.gross - A.net).toFixed(0)} sf partitions`, sf: A.net.toFixed(0) + ' sf', strong: true });
-  for (const [n, dims, sf] of A.extras)
-    areaRows.push({ label: n, size: dims, sf: sf.toFixed(0) + ' sf', strong: false });
+    sf: sqf((r[2]-r[0]) * (r[3]-r[1])), strong: false }));
+  areaRows.push({ label: 'Gross building', size: 'to the outside of the exterior walls', sf: sqf(A.grossExt), strong: false });
+  areaRows.push({ label: 'Gross interior', size: U.envelope(C, G), sf: sqf(A.gross), strong: false });
+  areaRows.push({ label: 'Net floor', size: `less ${sqf(A.gross - A.net)} partitions`, sf: sqf(A.net), strong: true });
+  /* Everything below Net floor reads as an addition to it, which is true of
+     outdoor space but not of an extra that sits inside the envelope. Hazel's
+     bedroom closet is inside, and used to print exactly like the patio above
+     it — 32 sf of the 606 quoted twice. "of which" is how a schedule marks a
+     subtotal; the figure itself was, and stays, correct. */
+  for (const [n, dims, sf, inside] of A.extras)
+    areaRows.push({ label: inside ? `of which ${n.charAt(0).toLowerCase()}${n.slice(1)}` : n,
+                    size: dims, sf: sqf(sf), strong: false });
 
   return { problems: probs, sections, areaRows, area: A,
     footnote: U.areaNote(C, G, A) };
@@ -3135,7 +3923,24 @@ const API = {
     .map(([label, v, f]) => ({ label, formula: f, value: ftin(v) })),
   setConfig(k, v) { if (!isFinite(v) || v <= 0) return; C = { ...C, [k]: v }; G = U.derive(C); save(); sync(); draw(); },
   resetConfig() { C = { ...U.PLAN }; G = U.derive(C); save(); sync(); draw(); },
-  setMirror(m) { C = { ...C, mirror: !!m }; save(); sync(); draw(); },
+  /* Mirroring reflects the whole plan about x = C.W — every wall, fixture,
+     keep-out and label goes through mRect() — so the FURNITURE has to be
+     reflected with it. It used to be left exactly where it was while the
+     walls moved out from under it: one click on "Mirrored" drove half a
+     finished layout into the casework, with no prompt, no warning, and
+     nothing in the undo stack to bring it back.
+
+     x → C.W - x mirrors the position; rot → -rot mirrors the piece left to
+     right while keeping it FACING the same way. (180 - rot would keep every
+     footprint legal too, but it turns every sofa and bed around backwards.) */
+  setMirror(m) {
+    m = !!m;
+    if (m === !!C.mirror) return;                // idempotent — never flip twice
+    pushUndo();                                  // before C changes: the entry stores the old hand
+    C = { ...C, mirror: m };
+    for (const it of items) { it.x = C.W - it.x; it.rot = (360 - it.rot) % 360; }
+    save(); sync(); draw();
+  },
   mirrored: () => !!C.mirror,
   setWallMode(m) { wallMode = m; draw(); },
   /* 3D and Plan are a pair, so they have to be reversible. Going to Plan
@@ -3176,11 +3981,14 @@ const API = {
     });
   },
   coverage() {
-    const a = items.reduce((s, it) => s + (spec(it).s === 'rug' ? 0 : fW(it) * fD(it)), 0);
+    const a = items.reduce((s, it) => s + (isFloorCover(it) ? 0 : fW(it) * fD(it)), 0);
     /* against NET floor, not the bounding box — an L-shaped plan's box
        includes a notch of outdoors and would understate every percentage */
     const net = areaReport().net || (C.W * C.D);
-    return { sf: a.toFixed(0), pct: (a / net * 100).toFixed(0) };
+    /* `sf` arrives formatted. The unit is UNITS' business and UNITS lives in
+       here, so the host cannot append 'sf' correctly — it used to, and got
+       square feet under a metric heading. */
+    return { sf: sqf(a), pct: (a / net * 100).toFixed(0) };
   },
   count: () => items.length,
   add, remove, duplicate, undo,
@@ -3192,16 +4000,27 @@ const API = {
     const p = hitFloor(ray(sx, sy));
     if (!p) return null;
     const probe = { id: -1, k, x: Math.round(p[0]*4)/4, y: Math.round(p[1]*4)/4, rot: 0 };
-    if (placeable(probe)) return probe;
-    for (let r = 0.25; r <= 3; r += 0.25) {
-      for (let a = 0; a < 16; a++) {
-        const t = a / 16 * Math.PI * 2;
-        const q = { ...probe, x: probe.x + Math.cos(t)*r, y: probe.y + Math.sin(t)*r };
-        q.x = Math.round(q.x*4)/4; q.y = Math.round(q.y*4)/4;
-        if (placeable(q)) return q;
-      }
-    }
-    return probe;                                  // nowhere clear — show it blocked
+    /* hitFloor() intersects an INFINITE floor plane, so EVERY pixel of the
+       stage resolves to a floor point — lawn, sky, car park — and at the
+       default camera most of the canvas is outside the building. A drop out
+       there used to be committed exactly where it landed, tens of feet
+       through the walls, and counted in "floor covered". Pull it back inside
+       the envelope BEFORE looking for a clear spot, and tell dropAt so it can
+       say what happened. */
+    const outside = !inBounds(probe);
+    if (outside) [probe.x, probe.y] = clampInside(probe, probe.x, probe.y);
+    /* A drop from outside is being RELOCATED, not nudged, so it looks for a
+       spot clear of the furniture already placed as well — otherwise every
+       drop on the lawn piles up on the same corner of the unit. Inside, the
+       pointer is the user's own choice and only the 3′ wall nudge applies.
+       Either way: nowhere clear ⇒ return the probe and show it blocked, so a
+       drop into a genuinely full room is still a piece one can nudge. */
+    const s = (outside && ringFind(probe, probe.x, probe.y, Math.max(fW(probe), fD(probe)) + 4,
+                                   q => placeable(q) && clearOfItems(q)))
+           || ringFind(probe, probe.x, probe.y, 3, placeable)
+           || probe;
+    s.outside = outside;
+    return s;
   },
   ghostAt(k, sx, sy) {
     const s = this.spotFor(k, sx, sy);
@@ -3217,7 +4036,11 @@ const API = {
     const it = { id: nextId++, k, x: s.x, y: s.y, rot: 0 };
     items.push(it); selId = it.id;
     save(); sync(); draw();
-    if (!placeable(it)) showSaved('Dropped there, but it overlaps — nudge it clear');
+    /* two different stories, and the old line told the wrong one for the
+       commonest case: a piece dropped on the lawn was reported as
+       "overlapping" something when it was thirty feet outside the walls */
+    if (s.outside) showSaved('That was outside the apartment — moved it inside');
+    else if (!placeable(it)) showSaved('Dropped there, but it overlaps — nudge it clear');
     return it.id;
   },
   select(id) { selId = id; sync(); draw(); },
@@ -3284,6 +4107,25 @@ const API = {
   /* the linked file — adopt one and the app saves into it by itself */
   linkFile, openLinked, reconnectLink, unlinkFile,
   link: () => ({ supported: FSA, state: linkState, name: fileName }),
+  /* Another tab wrote this apartment while this one had changes of its own.
+     Saving is suspended until the user says which version wins — null when
+     there is nothing to settle, which is almost always. */
+  conflict: () => extConflict
+    ? { plan: U.id, name: U.name, theirs: extConflict.items.length, mine: items.length }
+    : null,
+  resolveConflict(keep) {
+    if (!extConflict) return false;
+    const theirs = extConflict.items;
+    extConflict = null;                            // writes resume either way
+    if (keep === 'theirs') {
+      pushUndo();                                  // this tab's work goes, so keep a way back
+      applyLayout({ items: theirs }); selId = null;
+    }
+    save(); sync(); draw();
+    showSaved(keep === 'theirs' ? 'Loaded the other tab’s version'
+                                : 'Kept this tab’s version — the other tab is now behind');
+    return true;
+  },
   /* what the save state currently holds, for the UI to show back */
   project: () => ({
     storage: storageOK(),
@@ -3299,6 +4141,7 @@ const API = {
     flushSave();                                   // never tear down over unsaved work
     try { ro.disconnect(); } catch (e) {}
     try { removeEventListener('pagehide', onHide); } catch (e) {}
+    try { removeEventListener('storage', onStorage); } catch (e) {}
     if (glcv) glcv.remove();
   },
 };

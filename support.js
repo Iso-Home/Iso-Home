@@ -155,8 +155,21 @@
     runtime.markFetched(rootName);
     runtime.setRootName(rootName);
     runtime.adoptParsed(rootName, parsed);
-    if (!window.__resources) {
-      fetch(location.href).then((res) => res.ok ? res.text() : "").then((t) => {
+    {
+      /* `parsed` came out of the live DOM, and the HTML parser is lossy for
+         anything it treats as table or select content: an `<sc-for>` sitting
+         in a `<tbody>` is foster-parented out of the table and its `<tr>`
+         loses the loop scope. Re-read the document as TEXT and recompile from
+         that — parseDcText slices the `<x-dc>` block without ever parsing it.
+         `__resources` only says a URL has a local stand-in, so route through
+         it rather than treating its presence as "source unavailable"; a
+         genuinely bundled page answers from __resourceBlobs, and one with no
+         reachable source falls through to the catch and keeps the DOM copy. */
+      const self = location.href.split("#")[0];
+      const pre = window.__resources ? window.__resources[self] : void 0;
+      const target = typeof pre === "string" && pre ? pre : self;
+      const blob = bundledBlob(target);
+      (blob ? blob.text() : fetch(target).then((res) => res.ok ? res.text() : "")).then((t) => {
         const raw = t ? parseDcText(t) : null;
         if (raw?.template) runtime.updateHtml(rootName, raw.template);
       }).catch(() => {
