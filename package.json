@@ -1,8 +1,8 @@
 {
   "name": "iso-home",
-  "version": "1.0.0",
+  "version": "0.5.0",
   "private": true,
-  "description": "Parametric apartment unit modeler — dimensions in, geometry out",
+  "description": "Parametric apartment unit modeler \u2014 dimensions in, geometry out",
   "scripts": {
     "test": "node check-model.js && node check-exports.js"
   },

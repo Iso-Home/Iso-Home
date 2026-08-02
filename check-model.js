@@ -166,7 +166,26 @@ print('  rejects a non-project file: ' + (junk.ok === false ? 'OK — "' + junk.
 
 print(bad ? '\n  *** ' + bad + ' APARTMENT(S) LOST WORK ***' : '\n  round trip clean.');
 
+/* ══ version ═══════════════════════════════════════════════════════
+ * unit-model.js owns the version (it is the file the browser loads);
+ * package.json carries the same number so the repo agrees with itself.
+ * Two copies drift, so assert they match rather than trusting a habit —
+ * this is what catches a PR that bumped one and forgot the other.
+ * package.json's is semver-shaped, so 0.5 there is "0.5.0". */
+print('\n══ version ══');
+var modelV = api.version();
+var pkgV = JSON.parse(readFile('package.json')).version;
+/* index.html is a static page with no way to read the model, so it carries
+ * the number in markup. That is a third copy; assert it too rather than
+ * hoping. The app itself is NOT checked here — it renders api.version(). */
+var idxM = readFile('index.html').match(/class="ver">V\s*([0-9.]+)</);
+var idxV = idxM ? idxM[1] : '(not found)';
+var vOK = pkgV.replace(/\.0$/, '') === modelV && idxV === modelV;
+print('  unit-model.js ' + modelV + '   package.json ' + pkgV + '   index.html ' + idxV);
+print('  ' + (vOK ? 'OK — all three agree' : '*** MISMATCH — every PR bumps all three by 0.01 ***'));
+
 /* Exit nonzero on real failures so CI can gate on this script. Fit-report
  * "fail" rows are design findings, not bugs — they do not fail the build.
- * What does: a lost apartment in the round trip, or a junk file accepted. */
-if (bad > 0 || junk.ok !== false) throw new Error('check-model: FAILED');
+ * What does: a lost apartment in the round trip, a junk file accepted, or
+ * the two version numbers disagreeing. */
+if (bad > 0 || junk.ok !== false || !vOK) throw new Error('check-model: FAILED');

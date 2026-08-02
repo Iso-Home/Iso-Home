@@ -36,6 +36,21 @@ function createUnitModel(canvas, opts) {
    origin at the interior north-west corner of the envelope, and an
    outdoor bump-out (balcony or patio) sits at negative Y.
    ══════════════════════════════════════════════════════════════════ */
+/* ══ version ═══════════════════════════════════════════════════════
+   THE source of truth for the version, because this file is the one the
+   browser actually loads — there is no build step to inject anything, and
+   package.json is never fetched at runtime.
+
+   The scheme is deliberately not semver: it is a plain count of shipped
+   work. **Every PR bumps it by 0.01.** 0.5 was the version at the PR that
+   introduced this line, so the next is 0.51, then 0.52. A PR that does not
+   move this number is a PR that forgot to.
+
+   package.json carries the same number so `npm version` and the repo agree.
+   Keeping two copies invites drift, so check-model.js asserts they match and
+   fails the build if they do not — bump both, or CI says so. */
+const VERSION = '0.5';
+
 const PLANS = [];
 const planById = id => PLANS.find(p => p.id === id) || PLANS[0];
 
@@ -3948,6 +3963,7 @@ const API = {
   /* ftin prints a length, parseLen reads one back. The editor needs both
      ends of that, or it cannot show feet and inches without lying. */
   draw, resize, ftin, parseLen,
+  version: () => VERSION,
   config: () => ({ ...C }),
   /* the config pane is authored per plan: a patio unit has no stair rows
      and an L-shaped one has a dining bay the other does not.
