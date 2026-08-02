@@ -650,7 +650,12 @@ class Component extends DCLogic {
       copyLabel: S.copyLabel, objLabel: S.objLabel, gltfLabel: S.gltfLabel,
       wallCut: S.wall === 'cut' ? on : off, wallFull: S.wall === 'full' ? on : off,
       persp: S.ortho ? off : on, ortho: S.ortho ? on : off,
-      handPlan: S.hand === 'plan' ? on : off, handMirror: S.hand === 'mirror' ? on : off,
+      /* handedness comes from the MODEL, not from S.hand: mirroring now moves
+         the furniture with the plan, which makes it an undoable edit, and an
+         undo that flips it back would leave these two buttons claiming the
+         opposite of what the canvas is drawing */
+      handPlan:   (api ? !api.mirrored() : S.hand === 'plan')   ? on : off,
+      handMirror: (api ?  api.mirrored() : S.hand === 'mirror') ? on : off,
       filtersOpen: S.filtersOpen,
       filtersRef: this.filtersRef,
       headRef: this.headRef, titleRef: this.titleRef, nameRef: this.nameRef, tagRef: this.tagRef,

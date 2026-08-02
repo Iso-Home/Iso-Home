@@ -2213,7 +2213,10 @@ function restack() {
       /* pieces that belong together never stack — a chair tucks under its
          desk, a nightstand beside its bed; they do not climb on each other */
       if (partnered(it, o)) continue;
-      if (overlapsRect(c, bboxOf(o))) z = Math.max(z, (o.z || 0) + fH(o));
+      /* polygon vs polygon, not polygon vs bounding box: an angled piece's
+         AABB reaches well past its corners, and standing on that phantom
+         area used to lift furniture into mid-air */
+      if (overlapsPoly(c, corners(o))) z = Math.max(z, (o.z || 0) + fH(o));
     }
     it.z = z + fH(it) <= C.ceiling ? z : 0;      // never through the ceiling
   }
@@ -2382,6 +2385,36 @@ function clearPoly(it) {
   const w = fW(it)/2, d = fD(it)/2, [f,r,b,l] = S.clr.map(v => v/12);
   return [[-w-l,-d-f],[w+r,-d-f],[w+r,d+b],[-w-l,d+b]].map(p => xf(it,p[0],p[1]));
 }
+/* The general two-polygon separating-axis test.
+
+   It exists because a ROTATED piece is NOT its bounding box: at 45° an
+   84×36″ sofa's AABB is 7.07 × 7.07 ft instead of 7.0 × 3.0, and the two
+   phantom corner regions used to read as solid furniture. restack() lifted a
+   floor lamp standing a genuine 30″ clear of an angled sofa 32″ into the air
+   — hovering over bare carpet, reported as fine — and add() refused legal
+   spots up to a foot and a half from any angled piece.
+
+   Axes are BOTH polygons' edge normals: for two arbitrary convex shapes one
+   polygon's normals alone are not a sufficient axis set. */
+function overlapsPoly(A, B) {
+  for (const poly of [A, B]) {
+    for (let i=0;i<poly.length;i++){
+      const a = poly[i], b = poly[(i+1)%poly.length];
+      let ax = [-(b[1]-a[1]), b[0]-a[0]];
+      const L = Math.hypot(ax[0], ax[1]);
+      if (L < 1e-9) continue;                       // degenerate edge, no axis
+      ax = [ax[0]/L, ax[1]/L];
+      let p0=Infinity,p1=-Infinity,q0=Infinity,q1=-Infinity;
+      for (const p of A){ const v=p[0]*ax[0]+p[1]*ax[1]; p0=Math.min(p0,v); p1=Math.max(p1,v); }
+      for (const p of B){ const v=p[0]*ax[0]+p[1]*ax[1]; q0=Math.min(q0,v); q1=Math.max(q1,v); }
+      if (p1 <= q0+1e-7 || q1 <= p0+1e-7) return false;
+    }
+  }
+  return true;
+}
+/* the axis-aligned case — `blockers` really are rects, and this keeps its
+   own cheap axis list rather than deriving normals from a possibly
+   zero-extent rectangle */
 function overlapsRect(poly, rect) {
   const [x0,y0,x1,y1] = rect, rc = [[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
   const axes = [[1,0],[0,1]];
@@ -2424,6 +2457,43 @@ function placeable(it) {
   for (const r of blockers) if (overlapsRect(poly, r)) return false;
   return inBounds(it);
 }
+/* Where a piece that is nowhere legal gets put back.
+
+   The unit rectangle is the fallback parking space, and it is only ever
+   reached by a footprint that is OUT of bounds: a piece sitting legitimately
+   on the balcony still reads inBounds() there, so this never drags one off
+   the deck. Returns (x,y) untouched when the piece is in bounds already. */
+function clampInside(it, x, y) {
+  const px = it.x, py = it.y;
+  it.x = x; it.y = y;
+  const ok = inBounds(it);
+  const [x0,y0,x1,y1] = bboxOf(it);            // the bbox is centred on (x,y)
+  it.x = px; it.y = py;
+  if (ok) return [x, y];
+  const hw = (x1-x0)/2, hd = (y1-y0)/2;
+  /* a footprint wider than the room has no legal band to clamp into —
+     centre it rather than invert the limits */
+  return [hw*2 >= C.W ? C.W/2 : clamp(x, hw, C.W-hw),
+          hd*2 >= C.D ? C.D/2 : clamp(y, hd, C.D-hd)];
+}
+/* Spiral out from (cx,cy) in quarter-foot rings for the first position where
+   `ok` holds, and return a COPY of the piece sitting there — the caller
+   decides whether to commit it. Shared by the catalog drop and duplicate(),
+   which both need a world-space search near a given point. (add() has its
+   own, different search: it ranks the whole floor by distance from the
+   piece's home room.) */
+function ringFind(it, cx, cy, maxR, ok) {
+  const at = (x, y) => ({ ...it, x: Math.round(x*4)/4, y: Math.round(y*4)/4 });
+  let q = at(cx, cy);
+  if (ok(q)) return q;
+  for (let r = 0.25; r <= maxR; r += 0.25)
+    for (let a = 0; a < 16; a++) {
+      const t = a / 16 * Math.PI * 2;
+      q = at(cx + Math.cos(t)*r, cy + Math.sin(t)*r);
+      if (ok(q)) return q;
+    }
+  return null;
+}
 /* would the piece be legal at (x,y)? tested without committing the move */
 function freeAt(it, x, y, rot) {
   const px = it.x, py = it.y, pr = it.rot;
@@ -2437,7 +2507,14 @@ function freeAt(it, x, y, rot) {
    overlapping — an older layout, or a dimension change moved a wall onto it —
    movement is left free, otherwise it would be trapped there for good. */
 function slide(it, nx, ny) {
-  if (!placeable(it))              return [nx, ny];
+  /* ...but free is not the same as unbounded. This branch used to return the
+     raw pointer point with no test whatsoever, so one blocked piece could be
+     dragged straight through every wall — hitFloor() intersects an INFINITE
+     plane, so a shallow camera put it a hundred feet out in the car park,
+     still counted by the fit report. The blocker test stays skipped (a piece
+     trapped by a moved wall has to be able to slide out from under it); the
+     envelope does not. */
+  if (!placeable(it))              return clampInside(it, nx, ny);
   if (freeAt(it, nx, ny))          return [nx, ny];
   if (freeAt(it, nx, it.y))        return [nx, it.y];
   if (freeAt(it, it.x, ny))        return [it.x, ny];
@@ -2467,7 +2544,7 @@ function clearanceOK(it) {
   for (const r of blockers) if (overlapsRect(cp, r)) return false;
   for (const o of items) {
     if (o.id === it.id || isFloorCover(o) || partnered(it, o) || o.z > 0) continue;
-    if (overlapsRect(cp, bboxOf(o))) return false;
+    if (overlapsPoly(cp, corners(o))) return false;      // exact footprint, not its AABB
   }
   return true;
 }
@@ -2476,6 +2553,25 @@ const bboxOf = it => {
   return [Math.min(...c.map(p=>p[0])), Math.min(...c.map(p=>p[1])),
           Math.max(...c.map(p=>p[0])), Math.max(...c.map(p=>p[1]))];
 };
+/* Nothing lands on top of something already placed. Walls block by way of
+   `blockers`, but items are not in there — without this every piece seeded
+   to the same room stacks on the identical square. Rugs are exempt in BOTH
+   directions: they belong under the furniture.
+
+   Lifted out of add(), which is no longer the only caller — duplicate() has
+   to make the same test, and used to make none at all. */
+function clearOfItems(it) {
+  /* isFloorCover, not s === 'rug': deck tiles are a floor covering too, and
+     testing the shape name directly would have made a RUNNEN pack block the
+     furniture standing on it. Same reason every other rug test moved. */
+  if (isFloorCover(it)) return true;
+  const p = corners(it);
+  for (const o of items) {
+    if (o.id === it.id || isFloorCover(o)) continue;
+    if (overlapsPoly(p, corners(o))) return false;
+  }
+  return true;
+}
 /* sofa ↔ coffee table wants a RANGE: too close is as wrong as too far */
 function sofaCoffeeGap() {
   const sofas = items.filter(i => spec(i).rule === 'sofaCoffee');
@@ -2850,11 +2946,27 @@ cv.addEventListener('wheel', ev => {
 addEventListener('keydown', ev => {
   if (/^(INPUT|TEXTAREA)$/.test(ev.target.tagName)) return;
   const it = items.find(i => i.id === selId);
+  /* Cmd/Ctrl+Shift+Z is redo everywhere else, and it used to fall into the
+     undo branch below and quietly undo a SECOND step — an edit lost with no
+     way back. There is no redo stack on purpose: pushUndo() is not called by
+     drags or rotations, so redo would restore a stale item list and discard
+     every move made since. Say that instead of destroying more work. */
+  if ((ev.metaKey || ev.ctrlKey) && ev.shiftKey && ev.key.toLowerCase() === 'z') {
+    showSaved('Undo only — there is no redo'); ev.preventDefault(); return;
+  }
   if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 'z') {
     undo(); ev.preventDefault(); return;
   }
   if (ev.key === 'Escape') { selId = null; sync(); draw(); return; }
   if (!it) return;
+  /* Modified keys belong to the browser and the OS. The table below matches
+     on ev.key alone and calls preventDefault() unconditionally, so without
+     this bail Cmd/Ctrl+R rotated the piece 15° and swallowed the reload, and
+     Cmd+←/→ nudged instead of navigating. Cmd+Backspace stops deleting a
+     piece as a result — plain Backspace and Delete still do. altKey is in the
+     list for KEYDOWN only; it stays load-bearing as the snap-off modifier on
+     pointermove. */
+  if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
   const step = ev.shiftKey ? 1 : 0.25;
   if (ev.key === 'Backspace' || ev.key === 'Delete') { remove(it.id); ev.preventDefault(); return; }
   /* nudges and rotations obey the same wall constraint as dragging —
@@ -2889,7 +3001,12 @@ function homeRect(k) {
   return mRect(U.seedRect(C, G, groupOf(k)));
 }
 function add(k) {
-  pushUndo();
+  /* NOTHING is committed until a spot has been chosen — not the item, not an
+     undo entry. The passes below only ever test `it` against the OTHER
+     pieces, so it does not need to be in the list while they run, and if one
+     of them throws (a catalog key with no spec, a plan whose geometry is
+     incomplete) a half-placed phantom used to be left behind in `items`,
+     drawn, saved and counted, with an undo entry that restored nothing. */
   const it = { id: nextId++, k, x: cam.tx, y: cam.ty, rot: 0 };
   const h = homeSeed(k), home = homeRect(k);
   /* The sweep used to cover the envelope alone, and the seed was clamped into
@@ -2916,7 +3033,6 @@ function add(k) {
   /* Two passes: prefer somewhere the piece both fits AND keeps its declared
      clearance, so a new bed doesn't land jammed against a wall reporting FAIL.
      Fall back to merely fitting if the plan has no such spot. */
-  items.push(it);
   const inHome = ([x,y]) => !home || (x > home[0] && x < home[2] && y > home[1] && y < home[3]);
   /* 1. somewhere it fits AND keeps its clearance
      2. failing that, somewhere it merely fits INSIDE ITS OWN ROOM — a queen
@@ -2931,20 +3047,7 @@ function add(k) {
   const spine = keepOut();
   const clearOfSpine = () => { const p = corners(it);
     return !spine.some(r => overlapsRect(p, r)); };
-  /* nothing lands on top of something already placed. Walls block by way of
-     `blockers`, but items are not in there — without this every piece seeded
-     to the same room stacks on the identical square. Rugs are exempt in both
-     directions: they belong under the furniture. */
-  const clearOfItems = () => {
-    if (isFloorCover(it)) return true;
-    const p = corners(it);
-    for (const o of items) {
-      if (o.id === it.id || isFloorCover(o)) continue;
-      if (overlapsRect(p, bboxOf(o))) return false;
-    }
-    return true;
-  };
-  const base = () => fits(it) && clearOfItems();
+  const base = () => fits(it) && clearOfItems(it);   // hoisted: duplicate() needs it too
   const inRoom = [
     ([x,y]) => inHome([x,y]) && base() && clearOfSpine() && clearanceOK(it) !== false,
     ([x,y]) => inHome([x,y]) && base() && clearOfSpine(),
@@ -2971,16 +3074,35 @@ function add(k) {
     if (placed) break;
   }
   if (!placed) it.rot = 0;
+  pushUndo();                                   // only now is there anything to undo
+  items.push(it);
   selId = it.id; save(); sync(); draw();
 }
 function remove(id){
   pushUndo();
   items = items.filter(i=>i.id!==id); if (selId===id) selId=null; save(); sync(); draw();
 }
+/* A copy has to be a LEGAL copy.
+
+   This was `{...s, x: s.x+1, y: s.y+1}` pushed straight into the list with no
+   test of any kind. A 1 ft diagonal offset is smaller than almost every
+   catalog footprint, so the copy always overlapped its original and restack()
+   then stood it on top: a dining chair balanced 34″ in the air, reported as
+   fine by the list panel. Repeated copies walked diagonally out through the
+   walls, building a tower until it hit the ceiling.
+
+   So: spiral out from the original for the first spot where the copy both
+   fits the plan and stands clear of what is already placed, and decline if
+   there is none. The radius scales with the piece — a queen has to travel
+   more than its own depth before it can possibly clear itself. */
 function duplicate(id){
   const s = items.find(i=>i.id===id); if(!s) return;
+  const seed = { ...s, id: nextId, z: 0 };
+  const spot = ringFind(seed, s.x + 1, s.y + 1, Math.max(fW(s), fD(s)) + 4,
+                        q => placeable(q) && clearOfItems(q));
+  if (!spot) { showSaved('No clear spot for a copy'); return; }
   pushUndo();
-  const it = {...s, id: nextId++, x: s.x+1, y: s.y+1};
+  const it = { ...spot, id: nextId++ };
   items.push(it); selId = it.id; save(); sync(); draw();
 }
 
@@ -3071,13 +3193,20 @@ function selectPlan(id) {
    Clear-all used to be one click from losing an evening's arranging with
    no way back. Every mutation pushes the previous item list first. */
 let undoStack = [];
+/* The entry carries the HANDEDNESS as well as the items. Mirroring the plan
+   moves every piece with it (see setMirror), so an entry holding the item
+   list alone would put the furniture back while leaving the plan flipped —
+   the layout restored into the wrong hand of the apartment. A layout and the
+   handedness it was arranged in are one thing, and they travel together. */
 function pushUndo() {
-  undoStack.push(JSON.stringify(items));
+  undoStack.push(JSON.stringify({ items, mirror: !!C.mirror }));
   if (undoStack.length > 40) undoStack.shift();
 }
 function undo() {
   if (!undoStack.length) return;
-  items = JSON.parse(undoStack.pop());
+  const prev = JSON.parse(undoStack.pop());
+  items = prev.items;
+  if (!!C.mirror !== prev.mirror) C = { ...C, mirror: prev.mirror };
   selId = null; save(); sync(); draw();
 }
 
@@ -3502,7 +3631,24 @@ const API = {
     .map(([label, v, f]) => ({ label, formula: f, value: ftin(v) })),
   setConfig(k, v) { if (!isFinite(v) || v <= 0) return; C = { ...C, [k]: v }; G = U.derive(C); save(); sync(); draw(); },
   resetConfig() { C = { ...U.PLAN }; G = U.derive(C); save(); sync(); draw(); },
-  setMirror(m) { C = { ...C, mirror: !!m }; save(); sync(); draw(); },
+  /* Mirroring reflects the whole plan about x = C.W — every wall, fixture,
+     keep-out and label goes through mRect() — so the FURNITURE has to be
+     reflected with it. It used to be left exactly where it was while the
+     walls moved out from under it: one click on "Mirrored" drove half a
+     finished layout into the casework, with no prompt, no warning, and
+     nothing in the undo stack to bring it back.
+
+     x → C.W - x mirrors the position; rot → -rot mirrors the piece left to
+     right while keeping it FACING the same way. (180 - rot would keep every
+     footprint legal too, but it turns every sofa and bed around backwards.) */
+  setMirror(m) {
+    m = !!m;
+    if (m === !!C.mirror) return;                // idempotent — never flip twice
+    pushUndo();                                  // before C changes: the entry stores the old hand
+    C = { ...C, mirror: m };
+    for (const it of items) { it.x = C.W - it.x; it.rot = (360 - it.rot) % 360; }
+    save(); sync(); draw();
+  },
   mirrored: () => !!C.mirror,
   setWallMode(m) { wallMode = m; draw(); },
   setOrtho(v) { ORTHO = !!v; if (v) glide({ ...cam, az: 90, el: 90, tz: 0 }); else draw(); },
@@ -3544,16 +3690,27 @@ const API = {
     const p = hitFloor(ray(sx, sy));
     if (!p) return null;
     const probe = { id: -1, k, x: Math.round(p[0]*4)/4, y: Math.round(p[1]*4)/4, rot: 0 };
-    if (placeable(probe)) return probe;
-    for (let r = 0.25; r <= 3; r += 0.25) {
-      for (let a = 0; a < 16; a++) {
-        const t = a / 16 * Math.PI * 2;
-        const q = { ...probe, x: probe.x + Math.cos(t)*r, y: probe.y + Math.sin(t)*r };
-        q.x = Math.round(q.x*4)/4; q.y = Math.round(q.y*4)/4;
-        if (placeable(q)) return q;
-      }
-    }
-    return probe;                                  // nowhere clear — show it blocked
+    /* hitFloor() intersects an INFINITE floor plane, so EVERY pixel of the
+       stage resolves to a floor point — lawn, sky, car park — and at the
+       default camera most of the canvas is outside the building. A drop out
+       there used to be committed exactly where it landed, tens of feet
+       through the walls, and counted in "floor covered". Pull it back inside
+       the envelope BEFORE looking for a clear spot, and tell dropAt so it can
+       say what happened. */
+    const outside = !inBounds(probe);
+    if (outside) [probe.x, probe.y] = clampInside(probe, probe.x, probe.y);
+    /* A drop from outside is being RELOCATED, not nudged, so it looks for a
+       spot clear of the furniture already placed as well — otherwise every
+       drop on the lawn piles up on the same corner of the unit. Inside, the
+       pointer is the user's own choice and only the 3′ wall nudge applies.
+       Either way: nowhere clear ⇒ return the probe and show it blocked, so a
+       drop into a genuinely full room is still a piece one can nudge. */
+    const s = (outside && ringFind(probe, probe.x, probe.y, Math.max(fW(probe), fD(probe)) + 4,
+                                   q => placeable(q) && clearOfItems(q)))
+           || ringFind(probe, probe.x, probe.y, 3, placeable)
+           || probe;
+    s.outside = outside;
+    return s;
   },
   ghostAt(k, sx, sy) {
     const s = this.spotFor(k, sx, sy);
@@ -3569,7 +3726,11 @@ const API = {
     const it = { id: nextId++, k, x: s.x, y: s.y, rot: 0 };
     items.push(it); selId = it.id;
     save(); sync(); draw();
-    if (!placeable(it)) showSaved('Dropped there, but it overlaps — nudge it clear');
+    /* two different stories, and the old line told the wrong one for the
+       commonest case: a piece dropped on the lawn was reported as
+       "overlapping" something when it was thirty feet outside the walls */
+    if (s.outside) showSaved('That was outside the apartment — moved it inside');
+    else if (!placeable(it)) showSaved('Dropped there, but it overlaps — nudge it clear');
     return it.id;
   },
   select(id) { selId = id; sync(); draw(); },
