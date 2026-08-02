@@ -49,27 +49,39 @@ const planById = id => PLANS.find(p => p.id === id) || PLANS[0];
    coordinate below.
    ══════════════════════════════════════════════════════════════════ */
 const PLAN_A101 = {
-  /* ── MEASURED — off "unit 14 mockup design", sheet A-101, which supersedes
-        the earlier sheet. Confirmed with Mac as drawn in the AS-BUILT handing,
-        so `mirror` is off. The sheet notes these are inferred from a 3D
-        reference and must be field-verified. ── */
-  W:      28,          // interior width,  west→east   · 28′-0″  (29′-4″ exterior)
-  D:      23.5,        // interior depth, north→south  · 23′-6″  (24′-10″ exterior)
+  /* ── FIELD-MEASURED, 2026-08-01. Mac's tape, taken in the unit, and it
+        SUPERSEDES sheet A-101 — the sheet said as much ("inferred from a 3D
+        reference, field-verify"), and it is out by a lot: the drawing is
+        3′-10″ too WIDE and its dining room is more than twice the area of the
+        real one. Depth it gets to within 3″. Room topology is unchanged: the
+        rooms the sheet shows are the rooms that are there, in the same places.
+
+        Numbers marked ▸ are tape. Everything else is still inferred and is
+        what to measure next; the Fit tab lists them.
+
+        Consequence worth keeping in view: at these dimensions the unit is
+        ~562 sf gross, not the 650 sf advertised. ── */
+  W:      24 +  2/12,  // ▸ interior width,  west→east  · 24′-2″  = bedW + 4″ + living
+  D:      23 +  3/12,  // ▸ interior depth, north→south · 23′-3″  = living + dining
   ceiling: 8,
-  bedW:   13,          // bedroom, north-west corner   · 13′-0″
-  bedD:   12,          //   = living-room depth        × 12′-0″
-  bathW:   5,          // bathroom, south-west         ·  5′-0″
-  bathD:   8,          //   = kitchen depth            ×  8′-0″
-  kitW:   10 + 2/12,   // kitchen run length           · 10′-2″
+  bedW:   10 + 11/12,  // ▸ bedroom, north-west corner  · 10′-11″
+  bedD:   10 + 11/12,  // ▸   square                    × 10′-11″
+  livD:   15 +  4/12,  // ▸ living-room depth           · 15′-4″
+  partyD: 11 +  9/12,  // ▸ living/bedroom party wall   · 11′-9″
+  bathW:   5 +  6/12,  //   bathroom width — NOT MEASURED, back-solved from
+                       //   W − 4″ − kitW − dining, so it absorbs the slop
+  bathD:   8 +  4/12,  // ▸   = kitchen depth           ×  8′-4″
+  kitW:    9 + 10/12,  // ▸ kitchen run length          ·  9′-10″
 
   /* ── closets and the north-east bump-out ── */
-  wdW:     2 + 4/12,        // W/D alcove width        ·  2′-4″
-  closW:   8.5,             // bedroom reach-in        ·  8′-6″
-  closD:   2 + 7/12,        //                         ×  2′-7″
-  balcW:  11,               // balcony                 · 11′-0″
-  balcD:   6 + 2/12,        //   deck, wall to rail    ×  6′-2″
-  storW:   2 + 7/12,        // storage off the balcony ·  2′-7″
-  storD:   2 + 7/12,        //   coat closet matches   ×  2′-7″
+  wdW:     2 +  2/12,       //   W/D alcove — NOT MEASURED, set so the
+                            //   vestibule derives to the 8′-9″ hallway Mac taped
+  closW:   6 + 10/12,       // ▸ bedroom reach-in      ·  6′-10″
+  closD:   1 + 11/12,       // ▸                       ×  1′-11″
+  balcW:  10 +  2.5/12,     // ▸ balcony               · 10′-2½″
+  balcD:   5 +  7.5/12,     // ▸   deck, wall to rail  ×  5′-7½″
+  storW:   2 +  7/12,       //   storage off the balcony — NOT MEASURED
+  storD:   2 +  7/12,       //   coat closet matches   — NOT MEASURED
 
   /* ── glazing — the bedroom window is the only confirmed opening ── */
   winX:    1,          // from the west interior face
@@ -104,15 +116,22 @@ const PLAN_A101 = {
 /* ══ derivation ═══════════════════════════════════════════════════
    The tiling identities — what makes the plan re-solve instead of
    leaving orphan strips when a number changes:
-       bedW  = W − westW − wallInt        (the two bands must sum to W)
+       livW  = W − bedW − wallInt         (the two bands must sum to W)
        dinD  = D − livD                   (living stacks on dining)
-       utilD = D − livD − bathD − 2·wallInt   (the W/D band is the remainder)
-       kitD  = bathD + wallInt            (kitchen wall stacks on the bath wall)
+       utilD = D − bedD − bathD − 2·wallInt   (the W/D band is the remainder)
+       kitD  = bathD                      (kitchen shares the bathroom band)
        coatD = balcD − wallExt − wallInt − storD  (closets fill the bump-out)
        bumpW = storW + wallInt + balcW    (bump-out = closets + balcony)
+
+   NOTE, changed 2026-08-01: the living room used to be forced to bedD — the
+   sheet drew the bedroom spanning its whole west side. The tape says
+   otherwise. The bedroom is 10′-11″ deep, the living room 15′-4″, and the
+   difference is the hallway mouth opening off it. So living depth is its own
+   measured field (livD) and dining is what is left below it. Forcing the old
+   identity back would shorten the living room by 4′-5″.
    ══════════════════════════════════════════════════════════════════ */
 function deriveA101(c) {
-  const { W, D, bedW, bedD, bathW, bathD, kitW, wdW, closW, closD,
+  const { W, D, bedW, bedD, livD, bathW, bathD, kitW, wdW, closW, closD,
           balcW, balcD, storW, storD, wallInt: i, wallExt: e } = c;
 
   /* stair — risers divide the storey height as evenly as they can while
@@ -122,11 +141,11 @@ function deriveA101(c) {
   const riser = c.floorToFloor / nRise;
   const run   = (nRise - 1) * c.tread;
 
-  const livW  = W - bedW - i;             // 14′-8″ — living takes what's left
-  const kitD  = bathD;                    //  8′-0″ — kitchen shares the bath band
-  const dinW  = W - bathW - i - kitW;     // 12′-6″
-  const dinD  = D - bedD;                 // 11′-6″
-  const utilD = D - bedD - bathD - 2*i;   //  2′-10″ — the W/D band is the remainder
+  const livW  = W - bedW - i;             // 12′-11″ — living takes what's left
+  const kitD  = bathD;                    //  8′-4″ — kitchen shares the bath band
+  const dinW  = W - bathW - i - kitW;     //  8′-6″
+  const dinD  = D - livD;                 //  7′-11″ — dining is what is left below
+  const utilD = D - bedD - bathD - 2*i;   //  3′-4″ — the W/D band is the remainder
   const coatD = balcD - e - i - storD;    //  2′-7″
   const bumpW = balcW + i + storW;        // 13′-11″
 
@@ -170,7 +189,7 @@ function deriveA101(c) {
     rooms: {
       bedroom: [0, 0, bedW, bedD],
       closet:  [0, cy, closW, bedD],
-      living:  [lx, 0, W, bedD],
+      living:  [lx, 0, W, livD],
       vest:    [wdW, uy0, bedW, uy1],
       wd:      [0, uy0, wdW, uy1],
       bath:    [0, ky, bathW, D],
@@ -202,13 +221,15 @@ function problemsA101(c, g) {
   if (g.livW  <= 8) p.push(`Living width derives to ${ftin(g.livW)} — the bedroom is eating the east side.`);
   if (g.utilD <= 1.5) p.push(`W/D band derives to ${ftin(g.utilD)} — bedroom + bathroom leave no vestibule.`);
   if (g.dinW  <= 5) p.push(`Dining width derives to ${ftin(g.dinW)} — bath + kitchen span the whole south wall.`);
-  if (g.dinD  <= 5) p.push(`Dining depth derives to ${ftin(g.dinD)} — the bedroom band takes the whole plan.`);
+  if (g.dinD  <= 5) p.push(`Dining depth derives to ${ftin(g.dinD)} — the living room takes the whole plan.`);
+  if (c.livD  <= c.bedD) p.push(`Living depth ${ftin(c.livD)} is no deeper than the bedroom — the hallway has no mouth to open off.`);
+  if (c.partyD > c.livD) p.push(`Party wall ${ftin(c.partyD)} is longer than the living room it sits in.`);
   if (g.coatD <= 1) p.push(`Coat closet derives to ${ftin(g.coatD)} — the storage closet fills the bump-out.`);
   if (c.closW >  c.bedW)  p.push('Reach-in closet is wider than the bedroom.');
   if (c.wdW   >  c.bedW)  p.push('W/D alcove is wider than the band it sits in.');
   if (g.balcX <  c.bedW)  p.push('Balcony bump-out overruns the bedroom — it would sit off the living room wall.');
   if (c.winX + c.winW > c.bedW) p.push('Bedroom window runs past the bedroom into the living room.');
-  if (c.entryY + c.doorEntry > c.bedD) p.push('Entry door runs past the living room on the east wall.');
+  if (c.entryY + c.doorEntry > c.livD) p.push('Entry door runs past the living room on the east wall.');
   return p;
 }
 
@@ -432,8 +453,10 @@ function shellA101(C, G, h) {
   WX(W - storW - i, W+e, -(balcD+e), -balcD, 0, h, [], M.wall);
 
   /* interior partitions — all derived */
-  // bedroom east wall, north wall down to the bedroom's south wall
-  WY(0, uy0, bedW, bedW+i, 0, h, [], M.wall);
+  /* bedroom east wall — the living/bedroom party wall. Taped at 11′-9″, which
+     runs it past the bedroom's south-west corner and on to form the return at
+     the hallway mouth, so it is its own measurement rather than bedD + 4″. */
+  WY(0, C.partyD, bedW, bedW+i, 0, h, [], M.wall);
   // bedroom south wall — the door opens off the vestibule
   WX(-e, bedW+i, bedD, uy0, 0, h, [[op.bedDoor[0], op.bedDoor[1], 0, dh]], M.wall);
   // bedroom reach-in: east end wall, and the bypass head across its north face
@@ -627,8 +650,8 @@ function fixturesA101(C, G) {
 
 /* ── registry entry ─────────────────────────────────────────────── */
 PLANS.push({
-  id: 'goldridge', rev: 'v3', legacy: true,
-  name: 'Goldridge Apartments', tag: '650 sq ft', sub: 'Sheet A-101 · second storey',
+  id: 'goldridge', rev: 'v4', legacy: true,
+  name: 'Goldridge Apartments', tag: '650 sq ft', sub: 'Field-measured · second storey',
   PLAN: PLAN_A101, derive: deriveA101, problems: problemsA101,
   shell: shellA101, fixtures: fixturesA101,
   handed: true,
@@ -649,6 +672,9 @@ PLANS.push({
     ['Coat closet', `${ftin(C.storW)} × ${ftin(G.coatD)}`, G.rooms.coat],
   ],
   envelope: C => `${ftin(C.W)} × ${ftin(C.D)}`,
+  /* the closet stack at the east end of the bump-out is enclosed but sits
+     outside the envelope, so gross building area has to pick it up */
+  bumpGross: (C, G) => (C.storW + C.wallInt + C.wallExt) * (C.balcD + C.wallExt),
   pad: C => Math.max(2, C.balcD + C.wallExt + 1),
   seal: (C, G, stamp, PAD) => {
     const e = C.wallExt, bo = C.balcD + e;
@@ -681,8 +707,9 @@ PLANS.push({
   derived: (C, G) => [
     ['Living width', G.livW, 'W − bedW − 4″'],
     ['Dining width', G.dinW, 'W − bathW − 4″ − kitW'],
-    ['Dining depth', G.dinD, 'D − bedD'],
-    ['W/D band depth', G.utilD, 'D − bedD − bathD − 8″'],
+    ['Dining depth', G.dinD, 'D − livD'],
+    ['Hallway depth', G.utilD, 'D − bedD − bathD − 8″'],
+    ['Hallway length', C.bedW - C.wdW, 'bedW − wdW'],
     ['Coat closet depth', G.coatD, 'balcD − 8″ − 4″ − storD'],
     ['Bump-out width', G.bumpW, 'balcW + 4″ + storW'],
     ['Galley aisle', (C.bathD - 2 * C.counterD), 'bathD − 2 × 25″'],
@@ -693,7 +720,34 @@ PLANS.push({
     const aisle = (C.bathD - 2 * C.counterD) * 12;
     const aisleState = aisle < 42 ? 'fail' : aisle > 56 ? 'fail' : aisle > 48 ? 'tight' : 'pass';
     const ri = G.riser * 12, tr = C.tread * 12, blondel = 2 * ri + tr;
+    /* What the tape actually read, in inches, kept so the two hallway numbers
+       can be graded against it — both of them derive, so they are where the
+       accumulated slop in a 23-foot chain of measurements comes out. */
+    const TAPE = { hallD: 38, hallL: 105, livW: 155, dinW: 102 };
+    const resid = (derivedFt, taped) => Math.round(derivedFt * 12 - taped);
+    const slop = n => Math.abs(n) <= 2 ? 'pass' : Math.abs(n) <= 6 ? 'tight' : 'fail';
+    const dHallD = resid(G.utilD, TAPE.hallD), dHallL = resid(C.bedW - C.wdW, TAPE.hallL);
+    const dLivW = resid(G.livW, TAPE.livW), dDinW = resid(G.dinW, TAPE.dinW);
     return [
+      { title: 'Against the tape', rows: [
+        /* W is measured twice over, by two disjoint sets of rooms — bedroom +
+           living across the north, bathroom + kitchen + dining across the
+           south. Both bands derive their spare room from W, so these two rows
+           are how you find out that W itself is wrong. */
+        R('Width closes, north band', `${ftin(G.livW)} living vs ${TAPE.livW}″ taped`, slop(dLivW),
+          `livW = W − bedW − 4″. Off by ${dLivW > 0 ? '+' : ''}${dLivW}″ means W disagrees with the taped bedroom + living room.`),
+        R('Width closes, south band', `${ftin(G.dinW)} dining vs ${TAPE.dinW}″ taped`, slop(dDinW),
+          `dinW = W − bathW − 4″ − kitW. This is the row that moves when a real bathroom measurement goes in: off by ${dDinW > 0 ? '+' : ''}${dDinW}″ means the bathroom and W cannot both be right.`),
+        R('Hallway depth', `${ftin(G.utilD)} vs ${TAPE.hallD}″ taped`, slop(dHallD),
+          `Derives from D − bedD − bathD − 8″, so it collects the error from every reading above it. Out by ${dHallD > 0 ? '+' : ''}${dHallD}″.`),
+        R('Hallway length', `${ftin(C.bedW - C.wdW)} vs ${TAPE.hallL}″ taped`, slop(dHallL),
+          `Derives from bedW − wdW. wdW was set to make this land, so this agreeing proves nothing — it is the W/D alcove that is unverified.`),
+        R('Bathroom', `${ftin(C.bathW)} × ${ftin(C.bathD)}`, 'tight',
+          `Never measured — but not free either. ${ftin(C.bathW)} is the ONLY width at which the south band spans the same W as the taped bedroom + living room, so it is a prediction, not a guess. Measure it: if it comes back near ${ftin(C.bathW)} that independently confirms W from a disjoint set of rooms. If it comes back very different, the two width rows above go red and W is wrong — or the south band holds something unmeasured, a chase or a linen closet.`),
+        R('Balcony clears the bedroom', ftin(G.balcX - C.bedW),
+          G.balcX - C.bedW >= 1 ? 'pass' : G.balcX - C.bedW >= 0 ? 'tight' : 'fail',
+          `The bump-out has to start east of the bedroom's party wall or the balcony would open off the bedroom. At the taped width it clears by ${ftin(G.balcX - C.bedW)} — it used to clear by 2′-0″, so the storage and coat closets are the next thing the tape will move.`),
+      ]},
       { title: 'Built in — from the dimensions', rows: [
         R('Galley aisle', Math.round(aisle) + '″', aisleState,
           aisle > 56 ? `Too wide to be a galley. kitD derives to ${ftin(G.kitD)} from bathD + 4″, so the runs end up ${Math.round(aisle)}″ apart — that's a corridor kitchen, not a galley.`
@@ -720,16 +774,23 @@ PLANS.push({
       ]},
     ];
   },
-  areaNote: (C, G, A) => `A-101 states 650 sf interior, but its own room schedule sums to 630 sf — it leaves out the ~30 sf vestibule. Measured off the drawn envelope the unit is ${A.gross.toFixed(0)} sf gross and ${A.net.toFixed(0)} sf net of partitions, so 650 sits between the two.`,
-  resetLabel: 'A-101',
+  areaNote: (C, G, A) => `The listed 650 sf is a GROSS BUILDING figure and the tape agrees with it: measured to the outside face of the exterior walls, and picking up the closet stack in the bump-out, this plan is ${A.grossExt.toFixed(0)} sf — within ${Math.abs(650 - A.grossExt).toFixed(0)} sf of the listing. Nothing is missing. Inside those walls you get ${A.gross.toFixed(0)} sf of interior and ${A.net.toFixed(0)} sf of actual floor, because ${(A.grossExt - A.net).toFixed(0)} sf of the 650 is wall: ${(2*(C.W + C.D)*C.wallExt + 4*C.wallExt*C.wallExt).toFixed(0)} sf of 8″ exterior envelope, ${(A.gross - A.net).toFixed(0)} sf of partitions, and the bump-out closets. A small unit has a lot of perimeter for its area, so that ratio is normal — but furniture goes in the ${A.net.toFixed(0)} sf, which is the number to shop against.`,
+  resetLabel: 'the tape survey',
   constants: `Near-certain in US residential. Interior partitions 4″, exterior 8″. Interior doors 32″×80″, entry and bedroom 36″×80″, bypass/bifold 30″. Counters 36″ high × 25″ deep, uppers at 54″.`,
   fields: [
-    { t: 'Envelope & rooms — from A-101',
-      note: `Every wall derives from these. Change one and the whole plan re-solves. Read off sheet A-101, which says they are inferred from a 3D reference and must be field-verified.`,
+    { t: 'Envelope & rooms — field-measured',
+      note: `Tape survey of 2026-08-01, which supersedes sheet A-101. W and D are not
+             independent readings: W is bedW + 4″ + the living-room width, D is the living
+             room plus the dining room. Measure the two overall runs directly and these are
+             the first numbers to correct. bathW is the one room here nobody has measured.`,
       rows: [['W','Interior width'], ['D','Interior depth'], ['ceiling','Ceiling height'],
-             ['bedW','Bedroom width'], ['bedD','Bedroom + living depth'],
-             ['bathW','Bathroom width'], ['bathD','Bath + kitchen depth'], ['kitW','Kitchen run']] },
+             ['bedW','Bedroom width'], ['bedD','Bedroom depth'],
+             ['livD','Living-room depth'], ['partyD','Living/bedroom wall'],
+             ['bathW','Bathroom width — unmeasured'], ['bathD','Bath + kitchen depth'],
+             ['kitW','Kitchen run']] },
     { t: 'Closets & balcony',
+      note: `The reach-in and the balcony are taped. The W/D alcove is set so the hallway
+             derives to the 8′-9″ measured; the two bump-out closets are still off the sheet.`,
       rows: [['wdW','W/D alcove width'], ['closW','Reach-in width'], ['closD','Reach-in depth'],
              ['balcW','Balcony width'], ['balcD','Balcony depth'],
              ['storW','Storage width'], ['storD','Storage depth'],
@@ -1158,6 +1219,8 @@ PLANS.push({
     ['Bedroom closet', `${ftin(C.cl2W)} × ${ftin(G.hallD)}`, G.rooms.closet],
   ],
   envelope: (C, G) => `${ftin(C.W)} × ${ftin(C.D)} less the ${ftin(C.livX)} × ${ftin(G.dy)} notch`,
+  /* storage closet off the patio — enclosed, outside the envelope */
+  bumpGross: (C, G) => (C.storW + C.wallInt + C.wallExt) * (C.patD + C.wallExt),
   pad: C => Math.max(2, C.patD + 2*C.wallExt + 1),
   seal: (C, G, stamp, PAD) => {
     const e = C.wallExt, bo = C.patD + 2*e;
@@ -1232,7 +1295,7 @@ PLANS.push({
       ]},
     ];
   },
-  areaNote: (C, G, A) => `The listing states 616 sf. The drawing carries no dimension strings, so the scale came from the drawing itself — wall centrelines fit at ~35.4 px/ft, which independently makes the bedroom the 10′-1″ its own callout claims and the walls 7.6″ / 4.2″. At that scale the drawn envelope is ${A.gross.toFixed(0)} sf gross and ${A.net.toFixed(0)} sf net of partitions, so 616 sits between the two, which is how a listing quotes it. The room callouts are usable-area figures, not wall-to-wall: the living room's “9′-3″ × 12′-7″” is the north part of a band this model draws ${ftin(G.partX - C.livX)} × ${ftin(G.ky)}.`,
+  areaNote: (C, G, A) => `The listing states 616 sf. The drawing carries no dimension strings, so the scale came from the drawing itself — wall centrelines fit at ~35.4 px/ft, which independently makes the bedroom the 10′-1″ its own callout claims and the walls 7.6″ / 4.2″. At that scale the drawn envelope is ${A.gross.toFixed(0)} sf gross and ${A.net.toFixed(0)} sf net of partitions, so 616 sits between the two — this listing quotes INTERIOR, unlike Goldridge's 650, which is a gross-building figure. The two shortlist entries are not measured on the same basis; compare them on net floor, not on their headline numbers. The room callouts are usable-area figures, not wall-to-wall: the living room's “9′-3″ × 12′-7″” is the north part of a band this model draws ${ftin(G.partX - C.livX)} × ${ftin(G.ky)}.`,
   resetLabel: 'the leasing plan',
   constants: `Scaled off the drawing at 35.6 px/ft: exterior walls 7.6″, partitions 4.2″ —
      modelled at 8″ and 4″. Doors scale to 22–31″ on the sheet, which is narrower than any
@@ -2235,8 +2298,22 @@ function areaReport() {
      read `blockers`, and the fixture-less build above would hide the casework */
   buildShell();
   const a = r => (r[2]-r[0])*(r[3]-r[1]);
+  const gi = gross/(S*S);
+  /* Gross BUILDING area — measured to the outside face of the exterior walls,
+     which is what a listing quotes and what neither of the two numbers above
+     is. For any rectilinear outline the exterior area is the interior plus
+     perimeter × thickness plus one corner square per net convex corner; and a
+     staircase-convex plan (a rectangle, or an L) has the perimeter of its own
+     bounding box and exactly four net convex corners, so this holds for both
+     plans without special-casing the L. Anything enclosed OUTSIDE the envelope
+     — the closet stack in the bump-out — is the plan's to add.
+
+     This is the number that reconciles Goldridge to its listed 650 sf. Do not
+     conclude a listing is wrong by comparing it against interior clear. */
+  const grossExt = gi + 2*(C.W + C.D)*C.wallExt + 4*C.wallExt*C.wallExt
+                      + (U.bumpGross ? U.bumpGross(C, G) : 0);
   return {
-    gross: gross/(S*S), net: free/(S*S),
+    gross: gi, net: free/(S*S), grossExt,
     extras: U.areaExtras(C, G).map(([n, dims, r]) => [n, dims, a(r)]),
   };
 }
@@ -3024,6 +3101,7 @@ function fitData() {
   const areaRows = roomList().filter(([n]) => sch.includes(n)).map(([n, r]) => ({
     label: n, size: `${ftin(r[2]-r[0])} × ${ftin(r[3]-r[1])}`,
     sf: Math.round((r[2]-r[0]) * (r[3]-r[1])) + ' sf', strong: false }));
+  areaRows.push({ label: 'Gross building', size: 'to the outside of the exterior walls', sf: A.grossExt.toFixed(0) + ' sf', strong: false });
   areaRows.push({ label: 'Gross interior', size: U.envelope(C, G), sf: A.gross.toFixed(0) + ' sf', strong: false });
   areaRows.push({ label: 'Net floor', size: `less ${(A.gross - A.net).toFixed(0)} sf partitions`, sf: A.net.toFixed(0) + ' sf', strong: true });
   for (const [n, dims, sf] of A.extras)
