@@ -419,7 +419,7 @@
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;units&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;feet &amp; inches&quot;,&quot;metres&quot;],&quot;default&quot;:&quot;feet &amp; inches&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;},&quot;startWallMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;cut&quot;,&quot;full&quot;],&quot;default&quot;:&quot;cut&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;},&quot;startView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;iso&quot;,&quot;top&quot;,&quot;plan&quot;],&quot;default&quot;:&quot;iso&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;units&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;feet &amp; inches&quot;,&quot;metres&quot;],&quot;default&quot;:&quot;feet &amp; inches&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;},&quot;startWallMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;full&quot;,&quot;cut&quot;],&quot;default&quot;:&quot;full&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;},&quot;startView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;iso&quot;,&quot;top&quot;,&quot;plan&quot;],&quot;default&quot;:&quot;iso&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Model&quot;}}">
 const FILTERS = [
   ['fix', 'Fixtures'], ['dim', 'Dimensions'], ['lab', 'Room labels'],
   ['grid', 'Foot grid'], ['clr', 'Clearance envelopes'],
@@ -464,7 +464,7 @@ class Component extends DCLogic {
       const p = this.props;
       this.api = window.UnitModel.create(this.canvasRef.current, {
         units: p.units === 'metres' ? 'm' : 'ft',
-        wallMode: p.startWallMode === 'full' ? 'full' : 'cut',
+        wallMode: p.startWallMode === 'cut' ? 'cut' : 'full',
         view: p.startView === 'top' ? 'top' : 'iso',
         ortho: p.startView === 'plan',
         theme: {
@@ -491,7 +491,7 @@ class Component extends DCLogic {
       });
       this.setState({
         ready: true,
-        wall: p.startWallMode === 'full' ? 'full' : 'cut',
+        wall: p.startWallMode === 'cut' ? 'cut' : 'full',
         ortho: p.startView === 'plan',
         theme: {
           '--ink': '#393E41', '--ink-2': '#61666A', '--ink-3': '#949A9E',

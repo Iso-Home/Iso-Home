@@ -372,7 +372,14 @@ function RMP(x0,x1, y0,y1, zA,zB, t, m) {
 }
 
 /* ══ shell ═════════════════════════════════════════════════════════ */
-let showFixtures = true, wallMode = 'cut', EXPORTING = false;
+/* Walls stand at their real height by default. This used to open in 'cut',
+   which slices them at CUT so you look down into the rooms — but a 4′-6″ stub
+   reads as a model of an apartment rather than as the apartment, and the
+   doll's-house culling below already keeps the near walls out of the way in
+   'full' by ghosting whichever ones are between the eye and the plan. Cutaway
+   is still one click away, and areaReport() still forces 'cut' for its raster
+   regardless of what the view is showing. */
+let showFixtures = true, wallMode = 'full', EXPORTING = false;
 const CUT = 4.5;
 const wallTop = () => wallMode === 'full' ? C.ceiling : Math.min(CUT, C.ceiling - 0.5);
 
@@ -500,16 +507,17 @@ function buildEntryStair() {
           stairX0, stairX1, nbrX, nbrDoorC } = G;
   const rt = 0.12;
 
-  /* the storey below, as a slab edge — without it the stair descends from
-     nothing and the unit reads as sitting on the ground. Perimeter bands
-     only: floors paint before walls and unsorted, so a full-footprint slab
-     would sit in `quads` and cover the floor it is supposed to be under. */
+  /* the storey below — without it the stair descends from nothing and the
+     unit reads as sitting on the ground. This was four perimeter bands, a
+     picture frame with the middle missing, because paint() drew floors first
+     and everything in `quads` after, so a full-footprint slab covered the
+     floor it is supposed to be under. draw() paints what sits below the floor
+     as its own layer now (see the note there), so the slab can be a slab:
+     honest geometry, and one box instead of four in the OBJ and glTF, where
+     the paint order never applied in the first place. */
   GRP = 'structure';
   const t = 1.0, W = C.W, D = C.D;
-  BX(-e, -e, -t, W+e, 0,   -0.02, M.poche);
-  BX(-e,  D, -t, W+e, D+e, -0.02, M.poche);
-  BX(-e,  0, -t, 0,   D,   -0.02, M.poche);
-  BX( W,  0, -t, W+e, D,   -0.02, M.poche);
+  BX(-e, -e, -t, W+e, D+e, -0.02, M.poche);
 
   /* The shared walkway, running the length of the east wall between two doors.
      Decked as three strips around the stairwell, not one slab — the flight
@@ -1502,13 +1510,81 @@ function buildGLTF() {
 /* The iso looks from the north-east so the balcony and the entry stair —
    which are on those two faces — are both in the foreground. Top view keeps
    az 90° so the plan reads like the sheet: east right, north up. */
-/* framing follows the envelope, so a plan of a different size still lands
-   in shot — the numbers used to be tuned to one unit's 28′ × 23′-6″ */
+/* ══ framing ═══════════════════════════════════════════════════════
+   The distances used to be a multiple of max(W, D) with hand-tuned target
+   offsets (+1, −2.75, −4.25). Two things were wrong with that. It reads no
+   part of the viewport, and SC below is derived from VH alone, so cam.fov
+   is the VERTICAL field of view and the horizontal one narrows with the
+   panel: in a tall narrow pane a wide plan simply ran off the sides — at
+   627×732 the west end of goldridge sat 25 px outside the canvas in Top.
+   And the offsets were fitted to one unit's 28′ × 23′-6″.
+
+   So frame from geometry instead. frameBox() is what a view must get on
+   screen and fitDist() solves for the distance that does it on BOTH axes.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* The envelope plus whatever the plan hangs off it — balcony, patio, and
+   the closets in the bump-out, all of which roomList() already reports in
+   world coordinates (mirrored plans included). The shared walkway, the
+   entry flight and the neighbour stub are deliberately NOT in here: they
+   are context, they reach 8′ past the east wall, and framing for them
+   would shrink the unit itself to make room for someone else's building. */
+function frameBox() {
+  const W = C.W || 28, D = C.D || 23.5;
+  const b = { x0:0, y0:0, x1:W, y1:D, z1: C.ceiling || 8 };
+  if (U) for (const [, r] of roomList()) {
+    if (r[0] < b.x0) b.x0 = r[0];   if (r[1] < b.y0) b.y0 = r[1];
+    if (r[2] > b.x1) b.x1 = r[2];   if (r[3] > b.y1) b.y1 = r[3];
+  }
+  return b;
+}
+
+/* The same basis as basis(), for an (az, el) the camera has not moved to
+   yet — f is exactly the reverse of the target→eye direction, so it can be
+   written down rather than recovered by normalising a subtraction. */
+function basisAt(az, el) {
+  const ce = Math.cos(RAD(el)), se = Math.sin(RAD(el));
+  const f = [-ce*Math.cos(RAD(az)), -ce*Math.sin(RAD(az)), -se];
+  const r = norm(cross(f,[0,0,1]));
+  return { f, r, u: cross(r,f) };
+}
+
+/* How far back the eye must sit, looking from (az, el) at (tx, ty, tz), for
+   every corner of `b` to land inside the canvas with FIT of it to spare.
+
+   Camera space is [dot(v,r), dot(v,u), dot(v,f)] and f runs from the eye
+   toward the target, so a corner P resolves to (a, h, c + dist) where a/h/c
+   are P−target on that same basis — moving the eye back only ever adds to
+   the depth term. toScreen divides by that depth and scales by SC, so
+   |SC·a/(c+dist)| ≤ halfWidth rearranges to dist ≥ SC·|a|/halfWidth − c.
+   One division per corner, no search. Ortho drops the −c: it ignores depth,
+   so the box's height above the floor costs it nothing.
+
+   VW/VH are still 0 the first time this runs (selectPlan frames the plan
+   before resize() has measured the canvas); assume the default panel then,
+   and resize() rescales to the real one the moment it knows it. */
+const FIT = 0.92;
+function fitDist(b, az, el, tx, ty, tz) {
+  const vw = VW || 960, vh = VH || 680;
+  const sc = (vh/2) / Math.tan(RAD(cam.fov)/2);
+  const kx = sc / (vw/2 * FIT), ky = sc / (vh/2 * FIT);
+  const { f, r, u } = basisAt(az, el);
+  let need = 0;
+  for (const x of [b.x0, b.x1]) for (const y of [b.y0, b.y1]) for (const z of [0, b.z1]) {
+    const v = [x - tx, y - ty, z - tz];
+    const c = ORTHO ? 0 : dot(v, f);
+    need = Math.max(need, Math.abs(dot(v,r))*kx - c, Math.abs(dot(v,u))*ky - c);
+  }
+  return Math.max(need, 4);
+}
+
+/* Both views now centre on that box and stand back far enough to hold it. */
 const VIEWS = () => {
-  const s = Math.max(C.W || 28, C.D || 23.5), cx = (C.W || 28)/2 + 1;
+  const b = frameBox(), cx = (b.x0 + b.x1)/2, cy = (b.y0 + b.y1)/2;
+  const iaz = C.mirror ? 150 : 32;
   return {
-    iso: { az: C.mirror ? 150 : 32, el:34, dist: s*2.15, tx: cx, ty: (C.D || 23.5)/2 - 2.75, tz:-1.0 },
-    top: { az: 90, el:90, dist: s*2.07, tx: cx, ty: (C.D || 23.5)/2 - 4.25, tz:0 },
+    iso: { az: iaz, el:34, dist: fitDist(b, iaz, 34, cx, cy, -1.0), tx: cx, ty: cy, tz:-1.0 },
+    top: { az: 90,  el:90, dist: fitDist(b, 90,  90, cx, cy,  0.0), tx: cx, ty: cy, tz: 0.0 },
   };
 };
 const cam = { az:32, el:34, dist:60, tx:15, ty:9, tz:-1.0, fov:36 };
@@ -1539,10 +1615,32 @@ function eye() {
           cam.tz + d*se];
 }
 function basis() {
-  const e = eye();
-  const f = norm(sub([cam.tx,cam.ty,cam.tz], e));
-  const r = norm(cross(f,[0,0,1]));
-  return { e, f, r, u: cross(r,f) };
+  return Object.assign({ e: eye() }, basisAt(cam.az, cam.el));
+}
+
+/* Floors are single-sided quads with a +Z normal, so paint()'s backface test
+   — dot(n, v0 − eye) ≥ 0 — reduces to −eye.z for every one of them: the whole
+   floor disappears the instant the eye reaches the slab, and you look straight
+   through the hole at the storey-below slab and the entry flight. The iso
+   ships tz = −1, so eye.z = cam.tz + cam.dist·sin(el) goes negative whenever
+   cam.dist·sin(el) < 1, which a drag to the bottom of the 4° tilt stop plus a
+   zoom to the 9 ft stop reaches easily (eye.z = −0.37, 1 of 10 floor quads
+   left, 17% of the frame the slab below).
+
+   Two-sided floors would be the wrong cure: down there the camera genuinely
+   IS under the slab, and the balcony deck box and the raised tile insets share
+   floorQuads, so it would flip their shading too. Keep the eye above the floor
+   instead. At ordinary zoom this costs nothing — at 60 ft it asks for 1.3° of
+   tilt, well inside the existing 4° stop; at the 9 ft stop it lifts the tilt
+   floor to 8.6°, which is exactly where the artefact started. ORTHO stands the
+   eye 400 ft further back so it is never at risk; using cam.dist here only ever
+   over-asks, and an orbit leaves ortho before the tilt gets near this anyway. */
+const MINEYE = 0.35;
+function clampEye() {
+  const need = (MINEYE - cam.tz) / cam.dist;          // sine of the tilt wanted
+  /* need ≥ 1 would mean no tilt clears the slab — unreachable, the zoom stops
+     at 9 ft and tz never drops below −1, so need tops out at 0.15. */
+  if (need < 1) cam.el = Math.max(cam.el, Math.asin(need) * 180 / Math.PI);
 }
 
 const cv = canvas;
@@ -1551,10 +1649,21 @@ let VW=0, VH=0, SC=1, B = basis();
 
 function resize() {
   const dpr = Math.min(devicePixelRatio || 1, 2), r = cv.getBoundingClientRect();
+  /* What the plan needed in the viewport we are LEAVING. The ResizeObserver
+     used to fire straight into draw(), so narrowing the window clipped the
+     plan and nothing brought it back except pressing a view button. */
+  const box = frameBox();
+  const was = fitDist(box, cam.az, cam.el, cam.tx, cam.ty, cam.tz);
   VW = Math.max(1, Math.round(r.width)); VH = Math.max(1, Math.round(r.height));
   cv.width = VW*dpr; cv.height = VH*dpr;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   if (GL) { glcv.width = VW*dpr; glcv.height = VH*dpr; GL.viewport(0,0,glcv.width,glcv.height); }
+  /* Scale by the ratio rather than snapping to the new fit: a resize should
+     not undo the user's zoom, only preserve how much of the plan they had.
+     On the very first call `was` is the 960×680 assumption fitDist() makes
+     while VW/VH are 0, so this is also what corrects the opening framing. */
+  const now = fitDist(box, cam.az, cam.el, cam.tx, cam.ty, cam.tz);
+  if (was > 0 && now > 0) cam.dist *= now / was;
   draw();
 }
 
@@ -1721,6 +1830,13 @@ function glEnd() {
   }
 }
 
+/* At or below the finished floor: the storey-below slab, the walkway deck and
+   the descending flight. Read off the geometry rather than the group name, so
+   a plan that builds something new down there is layered without being told. */
+function underFloor(q) {
+  for (const v of q.v) if (v[2] > 0.001) return false;
+  return true;
+}
 function paint(list, sort) {
   if (GL) {                                  // depth-buffered: order is irrelevant
     for (const q of list) {
@@ -1792,36 +1908,179 @@ function roomList() {
 }
 /* the five rooms A-101 schedules — used for the area table */
 const scheduled = () => U.scheduled;
+
+/* ══ where a room name may legibly sit ═════════════════════════════
+   Labels are painted on the 2D canvas, which sits above everything paint()
+   drew, and text3()'s only test is the near plane. So a room name used to
+   land wherever its centroid happened to project — on top of whatever solid
+   was in front of the room it names. In the default iso that is 9 of the 11
+   anchors, and BATH, VESTIBULE and W/D all print on the kitchen casework:
+   "BATH 5′-0″ × 8′-0″ · 40 sf" written across the kitchen counter names the
+   wrong room, and nothing in the frame says otherwise.
+
+   The test is NOT "can you see this room's floor". In Plan a washer fills
+   its closet completely, and W/D printed over the washer still names the
+   right room. The test is "does the surface under this text belong to this
+   room" — so cast the anchor, take the nearest face, and ask where its
+   footprint lands. If it is not this room's, walk the room for a point where
+   it is; if the room has no such point on screen at all, drop the label
+   rather than print it on someone else's counter.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Every face paint() would draw, projected once, carrying the screen bounding
+   box that makes a point test four comparisons for all but the handful of
+   faces genuinely over it. Rebuilt per frame, because the camera moves. */
+function occluders() {
+  const out = [];
+  for (const list of [floorQuads, quads]) for (const q of list) {
+    if (dot(q.n, sub(q.v[0], B.e)) >= 0) continue;      // backface, as paint()
+    const cp = clipNear(q.v.map(toCam));
+    if (cp.length < 3) continue;
+    const pts = cp.map(toScreen);
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const p of pts) {
+      if (p[0] < x0) x0 = p[0];   if (p[0] > x1) x1 = p[0];
+      if (p[1] < y0) y0 = p[1];   if (p[1] > y1) y1 = p[1];
+    }
+    out.push({ pts, x0, y0, x1, y1, n: q.n, d: dot(q.n, q.v[0]) });
+  }
+  return out;
+}
+function inPoly(s, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const yi = pts[i][1], yj = pts[j][1];
+    if ((yi > s[1]) !== (yj > s[1]) &&
+        s[0] < (pts[j][0]-pts[i][0]) * (s[1]-yi) / (yj-yi) + pts[i][0]) inside = !inside;
+  }
+  return inside;
+}
+/* the world point of the nearest face under screen point s, along the ray
+   that reaches world point p — i.e. the pixel the overlay would cover */
+function underPoint(p, s, occ) {
+  const e = B.e, dx = p[0]-e[0], dy = p[1]-e[1], dz = p[2]-e[2];
+  let bt = Infinity;
+  for (const o of occ) {
+    if (s[0] < o.x0 || s[0] > o.x1 || s[1] < o.y0 || s[1] > o.y1) continue;
+    const den = o.n[0]*dx + o.n[1]*dy + o.n[2]*dz;
+    if (Math.abs(den) < 1e-12) continue;
+    const t = (o.d - dot(o.n, e)) / den;
+    if (t <= 1e-4 || t >= bt) continue;
+    if (inPoly(s, o.pts)) bt = t;
+  }
+  return bt === Infinity ? null : [e[0]+dx*bt, e[1]+dy*bt, e[2]+dz*bt];
+}
+/* A hair of tolerance, no more: interior partitions are 4″, so anything
+   wider would let the kitchen's cabinet fronts count as the vestibule's.
+   This is only here so a guard or jamb standing exactly on the room line
+   does not fail on floating point. */
+const LABTOL = 0.05;
+function ownPoint(r, occ) {
+  const cx = (r[0]+r[2])/2, cy = (r[1]+r[3])/2, N = 11, grid = [];
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+    const x = r[0] + (r[2]-r[0])*(i+0.5)/N, y = r[1] + (r[3]-r[1])*(j+0.5)/N;
+    grid.push([x, y, (x-cx)*(x-cx) + (y-cy)*(y-cy)]);
+  }
+  /* N odd, so the middle sample IS the centroid — a room that reads fine is
+     answered by the first probe and its label does not move at all */
+  grid.sort((a, b) => a[2] - b[2]);
+  for (const g of grid) {
+    const p = [g[0], g[1], .02], c = toCam(p);
+    if (c[2] < NEAR) continue;
+    const s = toScreen(c);
+    if (s[0] < 0 || s[0] > VW || s[1] < 0 || s[1] > VH) continue;   // off canvas
+    const u = underPoint(p, s, occ);
+    if (u && u[0] >= r[0]-LABTOL && u[0] <= r[2]+LABTOL
+          && u[1] >= r[1]-LABTOL && u[1] <= r[3]+LABTOL) return p;
+  }
+  return null;
+}
+
 function drawLabels() {
-  const ink = cssv('--ink'), dim = cssv('--ink-3');
+  const ink = cssv('--ink'), dim = cssv('--ink-3'), occ = occluders();
   for (const [n, r, big] of roomList()) {
+    const at = ownPoint(r, occ);
+    if (!at) continue;                       // no part of this room reads
     const w = r[2]-r[0], d = r[3]-r[1];
     const lines = [{ t:n.toUpperCase(), font:DISP(), color:ink }];
     if (big) lines.push({ t:`${ftin(w)} × ${ftin(d)} · ${Math.round(w*d)} sf`, font:MONO(), color:dim });
     ctx.save(); ctx.letterSpacing = '1.4px';
-    text3([(r[0]+r[2])/2, (r[1]+r[3])/2, .02], lines);
+    text3(at, lines);
     ctx.restore();
   }
 }
+/* Which side of the unit the depth dimension stands on. It used to be hard
+   coded east at C.W + off, which on goldridge is x = 31.20′ — INSIDE the
+   shared walkway, whose deck runs 28.67′..36.17′, with the "23′-6″" string
+   landing over the open stairwell. 40 of 61 points along that line are behind
+   the landing guard and stroked on top of it, so the dimension reads as
+   measuring the walkway rather than the unit.
+
+   West is not a fix on its own: mirror the plan and the walkway swaps sides
+   with it (it decks −8.17′..−0.65′ then). Nor is standing outboard of the
+   walkway — x = 40.87′ projects clean off the canvas at 960×680. So ask the
+   geometry which face has nothing built past it, and stand there. A tie keeps
+   the east, which is where a plan with no outbuilding has always drawn it.
+   The neighbour stub is skipped: it is culled by camera angle, and an orbit
+   must not make the dimension jump sides. The test is deliberately about the
+   line's own x, not about which side has more built on it — both plans carry
+   the exterior wall 8″ past the envelope on both faces, and a comparison
+   would have flipped hazel on nothing but floating point. */
+function dimWest(off) {
+  let lo = 0, hi = C.W;
+  for (const list of [floorQuads, quads]) for (const q of list) {
+    if (q.g === 'neighbour') continue;
+    for (const v of q.v) { if (v[0] < lo) lo = v[0]; if (v[0] > hi) hi = v[0]; }
+  }
+  return hi > C.W + off && lo > -off;      // east is built over, west is not
+}
+
 /* per-wall dimensions: overall always, per-room in plan view */
 function drawDims() {
   const a = cssv('--accent'), off = 3.2;
-  /* overall strings run south and east — the bump-out occupies the north side */
+  /* overall strings run south, and down whichever side is clear — dimWest() */
   const tick = (p,dx,dy) => seg3([p[0]-dx,p[1]-dy,0],[p[0]+dx,p[1]+dy,0], a, 1);
-  const sy = C.D + off, ex = C.W + off;
+  const west = dimWest(off), sy = C.D + off, ex = west ? -off : C.W + off;
   seg3([0,sy,0],[C.W,sy,0], a, 1); tick([0,sy],0,.35); tick([C.W,sy],0,.35);
   seg3([ex,0,0],[ex,C.D,0], a, 1); tick([ex,0],.35,0); tick([ex,C.D],.35,0);
   text3([C.W/2, sy+.9, 0], [{ t:ftin(C.W), font:MONO(), color:a }]);
-  text3([ex+1.6, C.D/2, 0], [{ t:ftin(C.D), font:MONO(), color:a }]);
+  text3([ex + (west ? -1.6 : 1.6), C.D/2, 0], [{ t:ftin(C.D), font:MONO(), color:a }]);
 
   if (!ORTHO) return;
-  const d2 = cssv('--ink-3');
-  for (const [n, r] of roomList()) {
-    if (n === 'Balcony') continue;
-    seg3([r[0]+.15, r[1]+.5, .02],[r[2]-.15, r[1]+.5, .02], d2, .6, [3,3]);
-    seg3([r[0]+.5, r[1]+.15, .02],[r[0]+.5, r[3]-.15, .02], d2, .6, [3,3]);
-    text3([(r[0]+r[2])/2, r[1]+1.0, .03], [{ t:ftin(r[2]-r[0]), font:MONO(), color:d2 }]);
-    text3([r[0]+1.5, (r[1]+r[3])/2, .03], [{ t:ftin(r[3]-r[1]), font:MONO(), color:d2 }]);
+  /* Per-room dimensions. The offsets were a flat 1.0 ft and 1.5 ft from the
+     corner whatever the room's size, while the name sits at the centroid — so
+     in anything small both strings landed on the name and on each other. W/D
+     is 2′-4″ × 2′-10″: that put "2′ 4″" 7.6 px from "W/D" and "2′ 10″" 6 px
+     from it, inside a 10 px line box. Two changes.
+
+     The offsets scale with the room, on the axis each one is actually offset
+     along — the width string is pushed in Y so it answers to the room's DEPTH,
+     the depth string is pushed in X so it answers to the room's WIDTH.
+
+     And where even that cannot clear the name, nothing is drawn. Legibility is
+     a screen property, so the budget is spent in pixels and converted: a 10 px
+     line wants about 14 px of vertical room, a short string about 36 px of
+     horizontal room. In Plan the scale is SC/cam.dist px per foot, so zooming
+     in earns a string back instead of banning it for good.
+
+     Rooms the schedule dimensions are skipped outright: drawLabels already
+     prints "5′-0″ × 8′-0″ · 40 sf" under the name, and that line is wide
+     enough to swallow the depth string in any room narrow enough to care —
+     BATH collided with its own label line before this. */
+  const d2 = cssv('--ink-3'), pxft = SC / cam.dist;
+  const vGap = 14 / pxft, hGap = 36 / pxft;
+  for (const [n, r, big] of roomList()) {
+    if (n === 'Balcony' || big) continue;
+    const w = r[2]-r[0], d = r[3]-r[1];
+    const dy = Math.min(1.0, d/3), dx = Math.min(1.5, w/3);
+    if (d/2 - dy >= vGap) {
+      seg3([r[0]+.15, r[1]+.5, .02],[r[2]-.15, r[1]+.5, .02], d2, .6, [3,3]);
+      text3([(r[0]+r[2])/2, r[1]+dy, .03], [{ t:ftin(w), font:MONO(), color:d2 }]);
+    }
+    if (w/2 - dx >= hGap) {
+      seg3([r[0]+.5, r[1]+.15, .02],[r[0]+.5, r[3]-.15, .02], d2, .6, [3,3]);
+      text3([r[0]+dx, (r[1]+r[3])/2, .03], [{ t:ftin(d), font:MONO(), color:d2 }]);
+    }
   }
 }
 
@@ -2415,8 +2674,29 @@ function draw() {
   restack();
   for (const it of items) buildItem(it);
   if (GL) glBegin();
+  /* Three layers, back to front. Everything at or below the finished floor —
+     the storey-below slab, the walkway deck, the flight — is behind the floor
+     from any camera clampEye() allows; the floor is behind everything
+     standing on it. That layering used to be only two deep, floors and then
+     all of `quads`, so the slab below and the neighbour stub painted OVER the
+     unit's own floor. On a machine with no WebGL that was the single largest
+     error in the frame, and it is why buildEntryStair had to fake the storey
+     below as a picture frame rather than a slab.
+
+     One merged sorted list — the obvious fix — is much worse, not better: the
+     floor spans the whole frame, so its nearest vertex is the frame's nearest
+     vertex and it sorts LAST, painted over every wall in the unit. Measured
+     across 16 camera angles on both plans that is 17% of covered pixels
+     wrong. Three layers with the existing sort inside each is 5.5%, against
+     6.1% for what shipped, and — the part that matters for a view you can
+     orbit — no camera angle I sampled is worse than it was.
+
+     GL ignores `sort` and has a real depth buffer, so nothing changes there. */
+  const low = [], high = [];
+  for (const q of quads) (underFloor(q) ? low : high).push(q);
+  paint(low, true);
   paint(floorQuads, false);
-  paint(quads, true);
+  paint(high, true);
   if (GL) glEnd();
   if (showGrid) drawGrid();
   if (showDims) drawDims();
@@ -2470,6 +2750,12 @@ function pick(sx, sy) {
 }
 
 /* ══ pointer + touch ═══════════════════════════════════════════════ */
+/* The far zoom stop was a flat 160 ft. That is short of where a view button
+   now stands: fitting a 28′ plan into a 400×900 panel needs 161 ft, so the
+   first wheel tick after pressing Iso used to yank the camera forward and
+   clip the plan again. The stop still refuses to let the user drift further
+   out than 160, it just never argues with a framing the app chose itself. */
+const farZoom = from => Math.max(160, from);
 let mode = null, last = null, dragOff = null, downAt = null, moved = false;
 const touches = new Map();
 let pinch0 = 0, dist0 = 0;
@@ -2506,7 +2792,8 @@ cv.addEventListener('pointermove', ev => {
     if (touches.size < 2) return;
     const [a,b] = [...touches.values()];
     const d = Math.hypot(a[0]-b[0], a[1]-b[1]);
-    if (d > 4 && dist0 > 4) cam.dist = clamp(pinch0 * dist0/d, 9, 160);
+    if (d > 4 && dist0 > 4) cam.dist = clamp(pinch0 * dist0/d, 9, farZoom(pinch0));
+    clampEye();
     draw(); return;
   }
   const dx = ev.clientX-last[0], dy = ev.clientY-last[1];
@@ -2523,6 +2810,7 @@ cv.addEventListener('pointermove', ev => {
       cam.az += dx*0.34;
       cam.el = clamp(cam.el + dy*0.28, 4, 88);
     }
+    clampEye();          // the 4° stop alone lets the eye under the floor
   } else if (mode === 'pan') {
     const k = cam.dist*0.0016;
     cam.tx += (B.r[0]*dx + B.u[0]*dy)*k;
@@ -2554,7 +2842,8 @@ cv.addEventListener('pointercancel', endDrag);
 cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('wheel', ev => {
   ev.preventDefault();
-  cam.dist = clamp(cam.dist * Math.exp(ev.deltaY*0.0011), 9, 160);
+  cam.dist = clamp(cam.dist * Math.exp(ev.deltaY*0.0011), 9, farZoom(cam.dist));
+  clampEye();            // zooming in lowers the eye just as tilting does
   draw();
 }, { passive:false });
 
@@ -3118,7 +3407,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let anim = null;
 function glide(to, ms) {
   cancelAnimationFrame(anim);
-  if (REDUCED) { Object.assign(cam, to); draw(); save(); return; }
+  if (REDUCED) { Object.assign(cam, to); clampEye(); draw(); save(); return; }
   const from = { az:cam.az, el:cam.el, dist:cam.dist, tx:cam.tx, ty:cam.ty, tz:cam.tz };
   let daz = to.az - from.az;
   while (daz > 180) daz -= 360; while (daz < -180) daz += 360;
@@ -3127,6 +3416,7 @@ function glide(to, ms) {
     const k = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-k,3);
     cam.az = from.az + daz*e;
     for (const p of ['el','dist','tx','ty','tz']) cam[p] = from[p] + ((to[p] ?? from[p]) - from[p])*e;
+    clampEye();          // an animated move must not dip under the floor either
     draw();
     if (k < 1) anim = requestAnimationFrame(step); else save();
   })(t0);
