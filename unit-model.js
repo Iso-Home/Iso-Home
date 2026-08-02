@@ -74,8 +74,13 @@ const PLAN_A101 = {
   kitW:    9 + 10/12,  // ▸ kitchen run length          ·  9′-10″
 
   /* ── closets and the north-east bump-out ── */
-  wdW:     2 +  2/12,       //   W/D alcove — NOT MEASURED, set so the
-                            //   vestibule derives to the 8′-9″ hallway Mac taped
+  wdW:     2 +  6/12,       //   W/D alcove — NOT MEASURED. Was 2′-2″, set to make
+                            //   the hallway derive to the taped 8′-9″; the photo
+                            //   survey shows a FULL-SIZE top-load washer in there,
+                            //   which is 27″ and cannot fit 26″. 2′-6″ is the
+                            //   smallest alcove that holds it, and the 4″ it costs
+                            //   the hallway is now visible in the Fit tab rather
+                            //   than hidden in a number chosen to make things agree.
   closW:   6 + 10/12,       // ▸ bedroom reach-in      ·  6′-10″
   closD:   1 + 11/12,       // ▸                       ×  1′-11″
   balcW:  10 +  2.5/12,     // ▸ balcony               · 10′-2½″
@@ -260,6 +265,9 @@ const inches = f => Math.round(f * 12) + '″';
 /* ══ materials ═════════════════════════════════════════════════════ */
 const M = {
   oak:{c:[198,175,146]}, tile:{c:[216,216,212]}, deck:{c:[158,154,147]},
+  /* read off the 2026-08-01 photo survey of unit 14: light warm carpet in the
+     living room and bedroom, dark grey-brown vinyl plank everywhere else */
+  carpet:{c:[186,178,166]}, vinyl:{c:[96,83,72]},
   wall:{c:[236,231,223],edge:1}, poche:{c:[168,157,142]},
   counter:{c:[58,56,53],edge:1}, cab:{c:[224,217,206],edge:1},
   appl:{c:[176,180,184],edge:1}, porc:{c:[246,246,244],edge:1},
@@ -390,11 +398,17 @@ function shellA101(C, G, h) {
   const { W, D, wallExt: e, wallInt: i, doorH: dh, balcD, storW, bedW, bedD, closW } = C;
   const { rooms: R, balcony: B, op, ky, uy0, uy1, cy, balcX, kx } = G;
 
-  /* floors */
+  /* floors — finishes read off the photo survey, not measured. Carpet in the
+     living room and bedroom, dark vinyl plank through the kitchen, dining,
+     hallway and bath, and a tile pad inside the front door. The carpet/vinyl
+     line in the dining room is eyeballed from a photo taken across the kitchen
+     peninsula, so it is the one edge here worth correcting on sight. */
   GRP = 'floor';
-  FQ(0, 0, W, D, 0, M.oak);
-  FQ(R.bath[0], R.bath[1], R.bath[2], R.bath[3], .03, M.tile);
-  FQ(R.kitchen[0], R.kitchen[1], R.kitchen[2], R.kitchen[3], .03, M.tile);
+  FQ(0, 0, W, D, 0, M.carpet);
+  for (const r of [R.kitchen, R.dining, R.bath, R.vest, R.wd])
+    FQ(r[0], r[1], r[2], r[3], .03, M.vinyl);
+  /* entry tile pad, sized off the door and squared into the room */
+  FQ(W - C.doorEntry, op.entry[0] - C.wallInt, W, op.entry[1] + C.doorEntry, .04, M.tile);
   /* the bump-out: balcony deck, plus the closet stack floor at its east end */
   BX(B[0] - e, B[1], -0.42, B[2], B[3], 0, M.deck, null, floorQuads);
   FQ(W - storW, R.storage[1], W, -e, 0, M.oak);
@@ -746,9 +760,9 @@ PLANS.push({
         R('Hallway depth', `${ftin(G.utilD)} vs ${TAPE.hallD}″ taped`, slop(dHallD),
           `Derives from D − bedD − bathD − 8″, so it collects the error from every reading above it. Out by ${dHallD > 0 ? '+' : ''}${dHallD}″.`),
         R('Hallway length', `${ftin(C.bedW - C.wdW)} vs ${TAPE.hallL}″ taped`, slop(dHallL),
-          `Derives from bedW − wdW. wdW was set to make this land, so this agreeing proves nothing — it is the W/D alcove that is unverified.`),
+          `Derives from bedW − wdW. The photo survey forced wdW up to ${ftin(C.wdW)} to fit the full-size washer, which costs this row ${Math.abs(dHallL)}″ — so either bedW or the hallway reading carries that much slop. It was 0″ only because wdW had been chosen to make it 0″.`),
         R('Bathroom', `${ftin(C.bathW)} × ${ftin(C.bathD)}`, 'tight',
-          `Never measured — but not free either. ${ftin(C.bathW)} is the ONLY width at which the south band spans the same W as the taped bedroom + living room, so it is a prediction, not a guess. Measure it: if it comes back near ${ftin(C.bathW)} that independently confirms W from a disjoint set of rooms. If it comes back very different, the two width rows above go red and W is wrong — or the south band holds something unmeasured, a chase or a linen closet.`),
+          `Never measured — but not free either. ${ftin(C.bathW)} is the ONLY width at which the south band spans the same W as the taped bedroom + living room, so it is a prediction, not a guess. The photo survey backs it up: a standard three-fixture bath with the tub spanning the short wall, which rules out the 9′-4″ bathroom that a 28′-0″ unit would need. It does not pin the number to the inch — a tape here would still be the single best check on W.`),
         R('Balcony clears the bedroom', ftin(G.balcX - C.bedW),
           G.balcX - C.bedW >= 1 ? 'pass' : G.balcX - C.bedW >= 0 ? 'tight' : 'fail',
           `The bump-out has to start east of the bedroom's party wall or the balcony would open off the bedroom. At the taped width it clears by ${ftin(G.balcX - C.bedW)} — it used to clear by 2′-0″, so the storage and coat closets are the next thing the tape will move.`),
