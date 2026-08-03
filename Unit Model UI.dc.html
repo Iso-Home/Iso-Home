@@ -26,7 +26,7 @@
 <div data-screen-label="Unit Model" style="display: grid; grid-template-columns: {{ gridCols }}; grid-template-rows: auto 1fr; height: 100dvh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', ui-sans-serif, sans-serif; font-size: 14px; line-height: 1.5; color: #393E41; background: #EDEEE0;">
 
   <!-- ══ rail ══ -->
-  <header ref="{{ headRef }}" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 52px; background: #F6F7EB; border-bottom: 1px solid #DCDDCB; overflow-x: auto;">
+  <header ref="{{ headRef }}" style="grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 12px; min-height: 52px; background: #F6F7EB; border-bottom: 1px solid #DCDDCB;">
     <div ref="{{ titleRef }}" style="display: flex; align-items: baseline; gap: 9px; flex: none;">
       <button type="button" ref="{{ nameRef }}" onClick="{{ onApts }}" title="Switch apartment" style="display: flex; align-items: center; gap: 8px; font: inherit; font-family: Futura, 'Futura PT', 'Century Gothic', 'URW Gothic', sans-serif; font-weight: 500; font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap; color: #393E41; background: transparent; border: 0; border-radius: 6px; padding: 4px 7px; margin-left: -7px; cursor: pointer; flex: none;" style-hover="background:#EBECDD">
         <span style="max-width: 258px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ activeName }}</span>
@@ -538,6 +538,13 @@ class Component extends DCLogic {
       this.setState({
         ready: true,
         wall: p.startWallMode === 'cut' ? 'cut' : 'full',
+        /* Start a narrow window with the panel away. Below about 720px the
+           canvas and the list were both too small to be worth anything —
+           289px of apartment beside 248px of catalog. Collapsed, the model
+           gets the whole window and "Show panel" is right there in the
+           toolbar. This only sets the OPENING state: once the user touches
+           the toggle, their choice stands for the rest of the session. */
+        panelOpen: window.innerWidth >= 720,
         ortho: p.startView === 'plan',
         theme: {
           '--ink': '#393E41', '--ink-2': '#61666A', '--ink-3': '#949A9E',
@@ -811,7 +818,14 @@ class Component extends DCLogic {
          wider frame. */
       /* read from the model, never hard-coded here — unit-model.js owns it */
       version: api ? 'V ' + api.version() : '',
-      gridCols: S.panelOpen ? '1fr 330px' : '1fr',
+      /* The panel was a hard 330px. On a 537px window that left the model a
+         207px canvas — a 24-foot apartment in a strip narrower than the list
+         beside it. clamp() lets it give ground: never under 248px (below that
+         the catalog rows wrap), never over the 330px it has on a wide screen,
+         and 34vw in between. Desktop is unchanged — at 1024px and up the
+         clamp still returns 330. The canvas column is minmax(0, 1fr) so it
+         can shrink without being crushed to zero by its own contents. */
+      gridCols: S.panelOpen ? 'minmax(0, 1fr) clamp(248px, 34vw, 330px)' : '1fr',
       panelOpen: !!S.panelOpen,
       panelLabel: S.panelOpen ? 'Hide panel' : 'Show panel',
       panelChevron: S.panelOpen ? '\u25B6' : '\u25C0',
